@@ -4,7 +4,12 @@
 
 export function generateAdvocateBriefing(bill) {
   const { lineItems = [], totals = {}, hospitalName, flagSummary = {}, survivalPaths = [], dateOfService } = bill
-  const flagged = lineItems.filter(i => i.flag !== 'normal')
+  const isEOB = bill.documentType === 'eob'
+  // For EOBs, per-charge amounts from the parser are unreliable — zero them out
+  const flagged = lineItems.filter(i => i.flag !== 'normal').map(i => ({
+    ...i,
+    amount: isEOB ? null : i.amount,
+  }))
   const balance = totals.patientOwes ?? 0
   const billed = totals.billed ?? 0
   const covered = totals.covered ?? 0
@@ -34,7 +39,8 @@ function buildCaseSummary(bill, flagged, balance, billed, covered) {
   }
 
   if (hasDispute) {
-    parts.push(`We found ${flagged.length} charge${flagged.length > 1 ? 's' : ''} totaling $${flaggedTotal.toLocaleString()} that you should not pay without challenging first.`)
+    const amountStr = flaggedTotal > 0 ? ` totaling $${flaggedTotal.toLocaleString()}` : ''
+    parts.push(`We found ${flagged.length} charge${flagged.length > 1 ? 's' : ''}${amountStr} that you should not pay without challenging first.`)
   }
 
   if (highMultiplier) {
@@ -245,7 +251,7 @@ function buildMistakesToAvoid(balance, flagged, survivalPaths) {
   if (flagged.length > 0) {
     mistakes.push({
       mistake: 'Paying the flagged charges to "settle it quickly"',
-      why: `You have ${flagged.length} charges totaling $${flagged.reduce((s, i) => s + (i.amount ?? 0), 0).toLocaleString()} that have documented dispute grounds. Paying them forfeits that money permanently.`,
+      why: `You have ${flagged.length} charge${flagged.length > 1 ? 's' : ''} with documented dispute grounds. Paying them forfeits that money permanently.`,
       instead: 'Send the dispute letter first. Wait for their written response before paying a cent of the flagged amounts.'
     })
   }
