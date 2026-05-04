@@ -1,5 +1,6 @@
 import { useNavigate } from 'react-router-dom'
 import Nav from '../components/Nav'
+import Footer from '../components/Footer'
 
 export default function Home() {
   const navigate = useNavigate()
@@ -142,11 +143,8 @@ export default function Home() {
           </div>
         </section>
 
-        <div className="py-6 text-center text-xs" style={{ color: '#445878' }}>
-          Medzilla — free, private, nothing leaves your device.
-        </div>
-
       </div>
+      <Footer />
     </div>
   )
 }

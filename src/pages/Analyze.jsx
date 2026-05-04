@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import Nav from '../components/Nav'
+import Footer from '../components/Footer'
 import BillUploader from '../components/BillUploader'
 import BillBreakdown from '../components/BillBreakdown'
 import ChatInterface from '../components/ChatInterface'
@@ -153,6 +154,7 @@ export default function Analyze() {
           </div>
         </div>
       </main>
+      <Footer />
     </div>
   )
 }

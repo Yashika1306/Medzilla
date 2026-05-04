@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import Nav from '../components/Nav'
+import Footer from '../components/Footer'
 import SurvivalToolkit from '../components/SurvivalToolkit'
 import ActionPlan from '../components/ActionPlan'
 import SavingsEstimate from '../components/SavingsEstimate'
@@ -138,6 +139,7 @@ export default function Survive() {
           </div>
         )}
       </main>
+      <Footer />
     </div>
   )
 }

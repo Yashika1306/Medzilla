@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import Nav from '../components/Nav'
+import Footer from '../components/Footer'
 import UserProfileForm from '../components/UserProfileForm'
 import { getApiKey, setApiKey } from '../utils/geminiClient'
 
@@ -141,6 +142,7 @@ export default function Profile() {
           <UserProfileForm />
         </div>
       </main>
+      <Footer />
     </div>
   )
 }

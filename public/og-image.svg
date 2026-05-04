@@ -1,0 +1,51 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="630" viewBox="0 0 1200 630">
+  <defs>
+    <linearGradient id="logo-g" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#7C3AED"/>
+      <stop offset="100%" stop-color="#22D3EE"/>
+    </linearGradient>
+    <linearGradient id="text-g" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0%" stop-color="#7C3AED"/>
+      <stop offset="100%" stop-color="#22D3EE"/>
+    </linearGradient>
+  </defs>
+
+  <!-- Background -->
+  <rect width="1200" height="630" fill="#0b1326"/>
+
+  <!-- Subtle grid lines -->
+  <line x1="0" y1="210" x2="1200" y2="210" stroke="rgba(255,255,255,0.04)" stroke-width="1"/>
+  <line x1="0" y1="420" x2="1200" y2="420" stroke="rgba(255,255,255,0.04)" stroke-width="1"/>
+  <line x1="400" y1="0" x2="400" y2="630" stroke="rgba(255,255,255,0.04)" stroke-width="1"/>
+  <line x1="800" y1="0" x2="800" y2="630" stroke="rgba(255,255,255,0.04)" stroke-width="1"/>
+
+  <!-- Glow blob -->
+  <ellipse cx="600" cy="315" rx="340" ry="220" fill="rgba(124,58,237,0.08)"/>
+
+  <!-- Logo mark -->
+  <rect x="88" y="200" width="72" height="72" rx="16" fill="url(#logo-g)"/>
+  <text x="124" y="254" font-family="system-ui,sans-serif" font-size="44" font-weight="700" fill="white" text-anchor="middle">M</text>
+
+  <!-- Brand name -->
+  <text x="180" y="248" font-family="system-ui,sans-serif" font-size="42" font-weight="700" fill="rgba(255,255,255,0.92)">Medzilla</text>
+
+  <!-- Divider -->
+  <rect x="88" y="302" width="1024" height="1.5" fill="rgba(255,255,255,0.08)"/>
+
+  <!-- Main headline -->
+  <text x="88" y="378" font-family="system-ui,sans-serif" font-size="58" font-weight="700" fill="rgba(255,255,255,0.92)">Before you pay that bill —</text>
+  <text x="88" y="448" font-family="system-ui,sans-serif" font-size="58" font-weight="700" fill="url(#text-g)">you have options.</text>
+
+  <!-- Subtext -->
+  <text x="88" y="516" font-family="system-ui,sans-serif" font-size="26" fill="#7a8fa8">Free · Private · Nothing leaves your device</text>
+
+  <!-- Pill badges -->
+  <rect x="88" y="549" width="160" height="38" rx="19" fill="rgba(124,58,237,0.15)" stroke="rgba(124,58,237,0.4)" stroke-width="1"/>
+  <text x="168" y="573" font-family="system-ui,sans-serif" font-size="18" font-weight="600" fill="#a78bfa" text-anchor="middle">8 Letters</text>
+
+  <rect x="264" y="549" width="190" height="38" rx="19" fill="rgba(34,211,238,0.1)" stroke="rgba(34,211,238,0.35)" stroke-width="1"/>
+  <text x="359" y="573" font-family="system-ui,sans-serif" font-size="18" font-weight="600" fill="#22D3EE" text-anchor="middle">9 Paths to $0</text>
+
+  <rect x="470" y="549" width="170" height="38" rx="19" fill="rgba(16,185,129,0.1)" stroke="rgba(16,185,129,0.3)" stroke-width="1"/>
+  <text x="555" y="573" font-family="system-ui,sans-serif" font-size="18" font-weight="600" fill="#34d399" text-anchor="middle">100% Free</text>
+</svg>

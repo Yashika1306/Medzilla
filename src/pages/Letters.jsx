@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react'
 import { useNavigate, useLocation } from 'react-router-dom'
 import Nav from '../components/Nav'
+import Footer from '../components/Footer'
 import LetterGenerator from '../components/LetterGenerator'
 
 export default function Letters() {
@@ -54,6 +55,7 @@ export default function Letters() {
 
         <LetterGenerator bill={bill} initialLetterKey={initialLetterKey} />
       </main>
+      <Footer />
     </div>
   )
 }

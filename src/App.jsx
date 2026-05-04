@@ -4,6 +4,7 @@ import Analyze from './pages/Analyze'
 import Survive from './pages/Survive'
 import Letters from './pages/Letters'
 import Profile from './pages/Profile'
+import NotFound from './pages/NotFound'
 
 export default function App() {
   return (
@@ -14,6 +15,7 @@ export default function App() {
         <Route path="/survive" element={<Survive />} />
         <Route path="/letters" element={<Letters />} />
         <Route path="/profile" element={<Profile />} />
+        <Route path="*" element={<NotFound />} />
       </Routes>
     </BrowserRouter>
   )
