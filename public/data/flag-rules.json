@@ -1,0 +1,85 @@
+{
+  "often_disputed": {
+    "description": "Charges that are frequently disputed, commonly overbilled, or often incorrect",
+    "codes": {
+      "99285": {
+        "reason": "Highest-tier ER visit code — hospitals often upcode to 99285 even for moderate presentations. Requires documentation of high medical decision-making.",
+        "tip": "Ask for the medical documentation supporting this level. If your visit was for a non-life-threatening condition, this may have been upcoded."
+      },
+      "G0384": {
+        "reason": "Highest-tier ER facility fee (Level 5). Often assigned even when care was routine.",
+        "tip": "Request the criteria used to assign Level 5. Compare to your actual treatment received."
+      },
+      "80053": {
+        "reason": "Comprehensive metabolic panel — often ordered for physical injuries where metabolic testing has no clinical relevance.",
+        "tip": "Ask your doctor why a metabolic panel was medically necessary for your specific injury. If no clear reason, dispute it."
+      },
+      "80061": {
+        "reason": "Lipid panel (cholesterol test) — routinely ordered alongside metabolic panels for injury patients without cardiovascular history.",
+        "tip": "A lipid panel for an accident patient with no cardiac risk factors is hard to justify. This is a common add-on charge."
+      },
+      "85025": {
+        "reason": "Complete blood count — reasonable for many presentations, but often one of several redundant panels ordered together.",
+        "tip": "If you received 3+ blood panels for a physical injury with no infection or blood disorder suspected, request an explanation for each."
+      },
+      "96365": {
+        "reason": "IV infusion charges — often billed even when IV was only used for a short time or only for saline.",
+        "tip": "Verify the drug administered and duration. Routine saline IVs are often overbilled."
+      },
+      "96361": {
+        "reason": "Additional IV infusion hours — often added without clear documentation of extended infusion.",
+        "tip": "Each additional hour must be documented. Request nursing notes to verify."
+      }
+    }
+  },
+  "questionable": {
+    "description": "Charges that may be legitimate but warrant scrutiny given context",
+    "codes": {
+      "99284": {
+        "reason": "High-complexity ER visit. Could be appropriate or could be upcoded from 99283.",
+        "tip": "Review whether your presenting condition matched high-complexity criteria."
+      },
+      "80048": {
+        "reason": "Basic metabolic panel — more justified than the comprehensive version for injury, but still worth confirming relevance.",
+        "tip": "Ask if this panel was clinically indicated for your specific condition."
+      },
+      "36415": {
+        "reason": "Blood draw fee — sometimes separately billed on top of the lab test fees.",
+        "tip": "Check if this was billed in addition to lab codes. In many cases it should be bundled."
+      },
+      "A4550": {
+        "reason": "Surgical trays / supply charges — vague line items that are often inflated.",
+        "tip": "Request an itemized breakdown of exactly what supplies were used."
+      },
+      "96374": {
+        "reason": "IV push injection — verify the drug and that it was actually administered.",
+        "tip": "Ask for medication administration records to confirm this service was provided."
+      },
+      "93000": {
+        "reason": "ECG/EKG — routine for chest pain, but often added for unrelated complaints.",
+        "tip": "If you were not seen for cardiac symptoms, ask why an EKG was ordered."
+      }
+    }
+  },
+  "normal": {
+    "description": "Codes that are typically appropriate for their context",
+    "codes": ["71046", "70450", "73030", "73100", "73560", "73600", "12001", "12002", "99281", "99282", "99283", "Z00.00", "Z23"]
+  },
+  "unbundling_patterns": [
+    {
+      "codes": ["80053", "80048"],
+      "description": "Billing both comprehensive AND basic metabolic panels is unbundling — 80053 already includes all tests in 80048.",
+      "action": "Dispute the 80048 charge if 80053 is also billed."
+    },
+    {
+      "codes": ["80053", "80061", "85025"],
+      "description": "Three simultaneous blood panels for a trauma/injury patient is a common overbilling pattern.",
+      "action": "Request medical necessity documentation for each panel. At minimum one should be removable."
+    },
+    {
+      "codes": ["99285", "G0384"],
+      "description": "Billing both the physician E&M code at highest level AND the facility fee at highest level simultaneously.",
+      "action": "Both codes can be legitimate but warrant review — both at Level 5 is a flag for upcoding."
+    }
+  ]
+}

@@ -1,0 +1,145 @@
+{
+  "_national": [
+    {
+      "name": "University Emergency Hardship Funds",
+      "description": "Most US universities have emergency hardship funds for students in financial crisis. Contact your Dean of Students office or financial aid office — do not assume it doesn't exist. These funds are often underutilized because students don't ask.",
+      "action": "Email your Dean of Students: 'I am an international student facing an unexpected medical bill of $X. Do you have emergency hardship funds I can apply for?'",
+      "url": null
+    },
+    {
+      "name": "International Student Services Office",
+      "description": "Your university's international student office (often called ISSS or OIS) may know of scholarships, emergency funds, and local resources specifically for international students facing medical bills.",
+      "action": "Schedule a meeting with your DSO (Designated School Official) and ask explicitly about emergency financial resources.",
+      "url": null
+    },
+    {
+      "name": "Student Health Services",
+      "description": "Many campus health centers can help you navigate off-campus medical bills, connect you with patient advocates, or provide documentation of your student status for hospital financial assistance applications.",
+      "action": "Contact your campus student health services and ask if they have a patient advocate or financial counselor.",
+      "url": null
+    },
+    {
+      "name": "Dollar For — Free Charity Care Application Help",
+      "description": "Dollar For is a nonprofit that will personally help you apply for hospital charity care. Free. They specialize in helping patients who don't know how to navigate the process.",
+      "url": "https://dollarfor.org",
+      "action": "Go to dollarfor.org and start an application. They will guide you through the process."
+    }
+  ],
+  "AL": [],
+  "AK": [],
+  "AZ": [
+    { "name": "ASU Student Emergency Fund", "description": "Arizona State University has an emergency fund for students in financial crisis including medical bills.", "url": "https://eoss.asu.edu/dean/emergency", "schools": ["Arizona State University", "ASU"] },
+    { "name": "UA Student Emergency Fund", "description": "University of Arizona maintains emergency funds for students facing unexpected financial hardship.", "url": "https://dean.arizona.edu", "schools": ["University of Arizona", "UA", "UArizona"] }
+  ],
+  "CA": [
+    { "name": "UC Student Emergency Fund", "description": "All UC campuses maintain emergency funds for students. Apply through your campus Basic Needs Center.", "url": "https://basicneeds.universityofcalifornia.edu", "schools": ["UC Berkeley", "UCLA", "UC San Diego", "UC Davis", "UC Santa Barbara", "UC Irvine", "UC Santa Cruz", "UC Riverside", "UC Merced", "UCSF"] },
+    { "name": "CSU Emergency Assistance Program", "description": "California State University campuses have emergency assistance programs for enrolled students.", "url": "https://www.calstate.edu/apply/financial-aid", "schools": ["Cal State", "CSU", "San Jose State", "San Francisco State", "Cal Poly"] },
+    { "name": "Stanford Student Affairs Emergency", "description": "Stanford has emergency funds and patient advocates available to enrolled students.", "url": "https://financialaid.stanford.edu/undergrad/funding/emergency.html", "schools": ["Stanford", "Stanford University"] },
+    { "name": "USC Emergency Support Fund", "description": "USC provides emergency financial assistance to students in crisis.", "url": "https://studentaffairs.usc.edu/sos/emergency-funds/", "schools": ["USC", "University of Southern California"] }
+  ],
+  "CO": [
+    { "name": "CU Boulder Emergency Fund", "description": "University of Colorado Boulder has emergency funds for students facing unexpected financial hardship.", "url": "https://www.colorado.edu/deanofstudents/emergency-fund", "schools": ["CU Boulder", "University of Colorado Boulder"] },
+    { "name": "CSU Emergency Fund", "description": "Colorado State University maintains an emergency fund for students.", "url": "https://financial-aid.colostate.edu/emergency-funds/", "schools": ["CSU", "Colorado State University"] }
+  ],
+  "CT": [
+    { "name": "Yale Emergency Fund", "description": "Yale maintains emergency funds and has a robust patient advocacy program through Yale Health.", "url": "https://yalehealth.yale.edu", "schools": ["Yale", "Yale University"] },
+    { "name": "UConn Emergency Aid Fund", "description": "University of Connecticut has emergency aid for students in financial crisis.", "url": "https://financialaid.uconn.edu/emergency-aid/", "schools": ["UConn", "University of Connecticut"] }
+  ],
+  "DC": [
+    { "name": "Georgetown Emergency Fund", "description": "Georgetown University provides emergency financial assistance to students.", "url": "https://studentaffairs.georgetown.edu/dean/emergency-fund/", "schools": ["Georgetown", "Georgetown University"] },
+    { "name": "GWU Emergency Assistance", "description": "George Washington University has emergency assistance for enrolled students.", "url": "https://studentlife.gwu.edu/emergency-fund", "schools": ["GWU", "George Washington University"] },
+    { "name": "Howard University Emergency Fund", "description": "Howard University provides emergency assistance to students in financial need.", "url": "https://financialaid.howard.edu", "schools": ["Howard", "Howard University"] }
+  ],
+  "FL": [
+    { "name": "UF Student Emergency Fund", "description": "University of Florida has emergency assistance for students facing unexpected financial hardship.", "url": "https://sfa.ufl.edu/types-of-aid/emergency-funds/", "schools": ["UF", "University of Florida", "Gator"] },
+    { "name": "USF Emergency Financial Assistance", "description": "University of South Florida provides emergency financial assistance to students.", "url": "https://www.usf.edu/financial-aid/types/emergency.aspx", "schools": ["USF", "University of South Florida"] },
+    { "name": "FIU Student Emergency Fund", "description": "Florida International University maintains emergency funds for students.", "url": "https://deanofstudents.fiu.edu/emergency-assistance/", "schools": ["FIU", "Florida International University"] }
+  ],
+  "GA": [
+    { "name": "Georgia Tech Emergency Fund", "description": "Georgia Tech has emergency funds for students in financial crisis.", "url": "https://studentlife.gatech.edu/resources/emergency-funds", "schools": ["Georgia Tech", "Georgia Institute of Technology", "GT"] },
+    { "name": "UGA Emergency Assistance", "description": "University of Georgia provides emergency assistance to students.", "url": "https://dos.uga.edu/emergency-assistance/", "schools": ["UGA", "University of Georgia"] },
+    { "name": "Emory Student Emergency Fund", "description": "Emory University has an emergency fund for students facing unexpected hardship.", "url": "https://www.emory.edu/home/financial-services/students/", "schools": ["Emory", "Emory University"] }
+  ],
+  "IL": [
+    { "name": "UChicago Emergency Fund", "description": "University of Chicago maintains an emergency fund for students.", "url": "https://collegeaid.uchicago.edu/types-of-aid/emergency-fund", "schools": ["UChicago", "University of Chicago"] },
+    { "name": "Northwestern Emergency Support", "description": "Northwestern University provides emergency financial support to students.", "url": "https://financialaid.northwestern.edu/types-of-aid/emergency-aid/", "schools": ["Northwestern", "Northwestern University", "NU"] },
+    { "name": "UIUC Emergency Dean Fund", "description": "University of Illinois Urbana-Champaign has an Emergency Dean Fund for students.", "url": "https://odos.illinois.edu/community-of-care/emergency-dean/", "schools": ["UIUC", "University of Illinois", "Illinois", "U of I"] }
+  ],
+  "IN": [
+    { "name": "Purdue Emergency Fund", "description": "Purdue University maintains emergency assistance funds for students in crisis.", "url": "https://www.purdue.edu/odos/resources/emergency-fund.html", "schools": ["Purdue", "Purdue University"] },
+    { "name": "Notre Dame Emergency Assistance", "description": "University of Notre Dame provides emergency financial assistance to students.", "url": "https://finaid.nd.edu/aid-programs/emergency-financial-assistance/", "schools": ["Notre Dame", "University of Notre Dame"] },
+    { "name": "IU Emergency Fund", "description": "Indiana University has an emergency fund for students facing unexpected financial hardship.", "url": "https://studentaffairs.indiana.edu/student-support/emergency-fund/index.html", "schools": ["IU", "Indiana University"] }
+  ],
+  "MA": [
+    { "name": "MIT Emergency Fund", "description": "MIT maintains significant emergency funds for students including international students facing medical bills.", "url": "https://studentfinancialservices.mit.edu/additional-aid/emergency-funds/", "schools": ["MIT", "Massachusetts Institute of Technology"] },
+    { "name": "Harvard Emergency Fund", "description": "Harvard has emergency funds available to enrolled students through the Dean of Students.", "url": "https://college.harvard.edu/financial-support/emergency-funds", "schools": ["Harvard", "Harvard University"] },
+    { "name": "BU Dean of Students Emergency Fund", "description": "Boston University provides emergency assistance to students in financial crisis.", "url": "https://www.bu.edu/dos/resources/emergency-fund/", "schools": ["BU", "Boston University"] },
+    { "name": "Northeastern Emergency Fund", "description": "Northeastern University has emergency financial assistance for students.", "url": "https://studentfinance.northeastern.edu/emergency-assistance/", "schools": ["Northeastern", "Northeastern University"] },
+    { "name": "UMass Emergency Fund", "description": "UMass has emergency assistance programs for students in financial need.", "url": "https://www.umass.edu/financialaid/emergency", "schools": ["UMass", "University of Massachusetts", "UMass Amherst"] }
+  ],
+  "MD": [
+    { "name": "Johns Hopkins Emergency Fund", "description": "Johns Hopkins University provides emergency financial assistance to students.", "url": "https://studentaffairs.jhu.edu/studentlife/student-assistance/emergency-fund/", "schools": ["Johns Hopkins", "JHU", "Hopkins"] },
+    { "name": "UMD Emergency Fund", "description": "University of Maryland has emergency funds for students facing unexpected hardship.", "url": "https://financialaid.umd.edu/emergency-aid", "schools": ["UMD", "University of Maryland", "Maryland"] }
+  ],
+  "MI": [
+    { "name": "U-M Emergency Funds", "description": "University of Michigan has emergency funds available through the Dean of Students.", "url": "https://deanofstudents.umich.edu/emergency-funding", "schools": ["University of Michigan", "U-M", "UMich", "Michigan"] },
+    { "name": "MSU Emergency Fund", "description": "Michigan State University provides emergency financial assistance to students.", "url": "https://studentaid.msu.edu/types/emergency-loans.html", "schools": ["MSU", "Michigan State", "Michigan State University"] }
+  ],
+  "MN": [
+    { "name": "U of M Emergency Fund", "description": "University of Minnesota has emergency funds for students facing unexpected financial hardship.", "url": "https://onestop.umn.edu/finances/other-types-funding/emergency-loan-program", "schools": ["University of Minnesota", "UMN", "U of M", "Minnesota"] }
+  ],
+  "MO": [
+    { "name": "Wash U Emergency Assistance", "description": "Washington University in St. Louis has emergency assistance for students.", "url": "https://financialaid.wustl.edu/types-of-aid/special-circumstances/", "schools": ["Wash U", "WashU", "Washington University", "Washington University in St. Louis"] }
+  ],
+  "NC": [
+    { "name": "Duke Emergency Aid Fund", "description": "Duke University has emergency aid funds for students in financial crisis.", "url": "https://financialaid.duke.edu/types-of-aid/emergency-aid-fund/", "schools": ["Duke", "Duke University"] },
+    { "name": "UNC Emergency Fund", "description": "University of North Carolina at Chapel Hill has emergency funds for students.", "url": "https://studentaid.unc.edu/types-of-aid/emergency-aid/", "schools": ["UNC", "UNC Chapel Hill", "University of North Carolina"] },
+    { "name": "NC State Emergency Fund", "description": "NC State University provides emergency financial assistance to students.", "url": "https://studentservices.ncsu.edu/emergency-fund/", "schools": ["NC State", "NCSU", "North Carolina State"] }
+  ],
+  "NJ": [
+    { "name": "Princeton Emergency Fund", "description": "Princeton University provides emergency financial assistance to students.", "url": "https://financialaid.princeton.edu/types-aid/emergency-funding", "schools": ["Princeton", "Princeton University"] },
+    { "name": "Rutgers Emergency Fund", "description": "Rutgers University has emergency funds for students facing unexpected hardship.", "url": "https://financialaid.rutgers.edu/types-of-aid/emergency-aid/", "schools": ["Rutgers", "Rutgers University"] }
+  ],
+  "NY": [
+    { "name": "Columbia Emergency Aid", "description": "Columbia University has substantial emergency aid funds for enrolled students including international students.", "url": "https://sfs.columbia.edu/emergency-aid", "schools": ["Columbia", "Columbia University"] },
+    { "name": "Cornell Emergency Fund", "description": "Cornell University provides emergency funds to students in financial crisis.", "url": "https://sfs.cornell.edu/aid-basics/types-of-aid/emergency-funding", "schools": ["Cornell", "Cornell University"] },
+    { "name": "NYU Emergency Assistance", "description": "New York University has emergency financial assistance for students.", "url": "https://www.nyu.edu/students/student-information-and-resources/bills-payments-and-finances/financial-assistance/emergency-aid.html", "schools": ["NYU", "New York University"] },
+    { "name": "CUNY Emergency Aid", "description": "CUNY campuses have emergency aid available to students. Additionally, NYC Health + Hospitals has extremely strong charity care programs.", "url": "https://www.cuny.edu/financial-aid/", "schools": ["CUNY", "City University of New York", "Baruch", "Hunter", "Brooklyn College", "Queens College"] },
+    { "name": "Rochester Emergency Fund", "description": "University of Rochester has emergency funds for students in financial hardship.", "url": "https://enrollment.rochester.edu/financial-aid/", "schools": ["University of Rochester", "U of R", "Rochester"] }
+  ],
+  "OH": [
+    { "name": "OSU Emergency Fund", "description": "Ohio State University provides emergency funds to students through the Dean of Students.", "url": "https://dos.osu.edu/emergency-fund/", "schools": ["OSU", "Ohio State", "Ohio State University"] },
+    { "name": "Case Western Emergency Fund", "description": "Case Western Reserve University has emergency aid for students.", "url": "https://financialaid.case.edu/types-of-aid/emergency-aid/", "schools": ["Case Western", "CWRU", "Case Western Reserve"] }
+  ],
+  "OR": [
+    { "name": "UO Emergency Fund", "description": "University of Oregon has emergency funds for students facing unexpected hardship.", "url": "https://financialaid.uoregon.edu/emergency_aid", "schools": ["UO", "University of Oregon", "Oregon"] },
+    { "name": "OSU Emergency Fund", "description": "Oregon State University provides emergency financial assistance to students.", "url": "https://financialaid.oregonstate.edu/emergency-funding", "schools": ["Oregon State", "OSU Oregon"] }
+  ],
+  "PA": [
+    { "name": "Penn Emergency Funds", "description": "University of Pennsylvania has emergency funds for enrolled students including international students.", "url": "https://srfs.upenn.edu/financial-aid/types/emergency-aid/", "schools": ["Penn", "UPenn", "University of Pennsylvania"] },
+    { "name": "Carnegie Mellon Emergency Fund", "description": "CMU provides emergency financial assistance to students.", "url": "https://www.cmu.edu/student-affairs/dean/emergency-assistance/", "schools": ["CMU", "Carnegie Mellon", "Carnegie Mellon University"] },
+    { "name": "Pitt Emergency Fund", "description": "University of Pittsburgh has emergency funds for students in financial crisis.", "url": "https://oafa.pitt.edu/aid-types/emergency-aid/", "schools": ["Pitt", "University of Pittsburgh"] },
+    { "name": "Penn State Emergency Fund", "description": "Penn State has emergency assistance for students facing unexpected hardship.", "url": "https://studentaid.psu.edu/types-of-aid/emergency-assistance", "schools": ["Penn State", "PSU", "Pennsylvania State University"] }
+  ],
+  "TN": [
+    { "name": "Vanderbilt Emergency Fund", "description": "Vanderbilt University has emergency aid for students in financial crisis.", "url": "https://www.vanderbilt.edu/financial-aid/types/emergency-loans/", "schools": ["Vanderbilt", "Vandy", "Vanderbilt University"] },
+    { "name": "UTK Emergency Fund", "description": "University of Tennessee Knoxville provides emergency aid to students.", "url": "https://financialaid.utk.edu/types-of-aid/emergency-aid/", "schools": ["UTK", "Tennessee", "University of Tennessee"] }
+  ],
+  "TX": [
+    { "name": "UT Austin Emergency Fund", "description": "University of Texas at Austin has emergency funds for students facing unexpected hardship.", "url": "https://deanofstudents.utexas.edu/emergency/emergencyfund.php", "schools": ["UT Austin", "UT", "University of Texas Austin"] },
+    { "name": "Rice Emergency Aid", "description": "Rice University provides emergency financial aid to students.", "url": "https://financialaid.rice.edu/types-of-aid/emergency-aid", "schools": ["Rice", "Rice University"] },
+    { "name": "Texas A&M Emergency Fund", "description": "Texas A&M has emergency funds for students in financial crisis.", "url": "https://financialaid.tamu.edu/Types-of-Aid/Emergency-Aid", "schools": ["Texas A&M", "TAMU", "A&M"] }
+  ],
+  "VA": [
+    { "name": "UVA Emergency Fund", "description": "University of Virginia has emergency funds for students.", "url": "https://financialaid.virginia.edu/student-emergency-fund", "schools": ["UVA", "University of Virginia", "Virginia"] },
+    { "name": "Virginia Tech Emergency Fund", "description": "Virginia Tech provides emergency financial assistance to students.", "url": "https://financialaid.vt.edu/types/emergency.html", "schools": ["Virginia Tech", "VT", "Tech"] },
+    { "name": "GMU Emergency Fund", "description": "George Mason University has emergency assistance for students.", "url": "https://financialaid.gmu.edu/emergency-aid/", "schools": ["GMU", "George Mason", "George Mason University"] }
+  ],
+  "WA": [
+    { "name": "UW Emergency Aid Fund", "description": "University of Washington has emergency aid funds for students facing unexpected hardship.", "url": "https://www.washington.edu/financialaid/applying-for-aid/special-circumstances/emergency-aid/", "schools": ["UW", "University of Washington", "Washington"] },
+    { "name": "WSU Emergency Fund", "description": "Washington State University provides emergency assistance to students.", "url": "https://financialaid.wsu.edu/scholarships/emergency-aid/", "schools": ["WSU", "Washington State", "Washington State University"] }
+  ],
+  "WI": [
+    { "name": "UW-Madison Emergency Fund", "description": "University of Wisconsin-Madison has emergency funds for students in financial crisis.", "url": "https://financialaid.wisc.edu/emergency-funds/", "schools": ["UW Madison", "Wisconsin", "UW", "University of Wisconsin"] }
+  ]
+}
