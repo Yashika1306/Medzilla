@@ -17,7 +17,7 @@ const CHARGE_SOURCES = {
   '93000': '42 U.S.C. § 1395y(a)(1)(A) — EKG without cardiac presentation requires clinical justification',
 }
 
-export default function ChargeCard({ item }) {
+export default function ChargeCard({ item, isEOB }) {
   const [expanded, setExpanded] = useState(false)
 
   const multiplier = item.medicareRate && item.amount
@@ -46,13 +46,13 @@ export default function ChargeCard({ item }) {
         </div>
 
         <div className="text-right shrink-0 space-y-1">
-          {item.amount != null && (
+          {!isEOB && item.amount != null && (
             <p className="font-bold text-slate-800">${item.amount.toLocaleString('en-US', { minimumFractionDigits: 2 })}</p>
           )}
           {item.medicareRate != null && (
             <div className="text-xs text-slate-500">
               Medicare: <span className="font-semibold">${item.medicareRate}</span>
-              {multiplier && parseFloat(multiplier) > 1.5 && (
+              {!isEOB && multiplier && parseFloat(multiplier) > 1.5 && (
                 <span className={`ml-1 font-bold ${parseFloat(multiplier) >= 5 ? 'text-red-600' : parseFloat(multiplier) >= 2.5 ? 'text-amber-600' : 'text-slate-500'}`}>
                   ({multiplier}×)
                 </span>
@@ -70,7 +70,7 @@ export default function ChargeCard({ item }) {
         </div>
       </div>
 
-      {item.medicareRate != null && item.amount != null && parseFloat(multiplier) >= 2 && (
+      {!isEOB && item.medicareRate != null && item.amount != null && parseFloat(multiplier) >= 2 && (
         <div className="mt-2 text-xs text-slate-600 bg-white/80 rounded px-2 py-1.5 border border-slate-100">
           Billed <strong>${item.amount.toLocaleString()}</strong> — Medicare allows <strong>${item.medicareRate}</strong> for this same service. That {multiplier}× gap is your strongest negotiation point.
         </div>

@@ -57,7 +57,7 @@ export default function BillBreakdown({ bill }) {
         <div className="rounded-xl border-l-4 border-violet-500 bg-white border border-violet-100 p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
           <div>
             <p className="font-semibold text-slate-800 text-sm">
-              {totalFlagged} charge{totalFlagged > 1 ? 's' : ''} flagged — ${flaggedAmount.toLocaleString()} you should not pay without challenging first.
+              {totalFlagged} charge{totalFlagged > 1 ? 's' : ''} flagged{isEOB ? '' : ` — $${flaggedAmount.toLocaleString()}`} — review before paying anything.
             </p>
             <p className="text-xs text-slate-500 mt-0.5">
               Your first step is to request an itemized bill in writing. Do not pay anything until you do this.
@@ -101,7 +101,7 @@ export default function BillBreakdown({ bill }) {
           subtitle="Flagged based on CMS billing rules — these charges have documented grounds for dispute"
           color="red"
         >
-          {disputed.map(item => <ChargeCard key={item.code} item={item} />)}
+          {disputed.map(item => <ChargeCard key={item.code} item={item} isEOB={isEOB} />)}
         </Section>
       )}
 
@@ -112,7 +112,7 @@ export default function BillBreakdown({ bill }) {
           subtitle="May be legitimate but warrant scrutiny — request documentation before paying"
           color="amber"
         >
-          {questionable.map(item => <ChargeCard key={item.code} item={item} />)}
+          {questionable.map(item => <ChargeCard key={item.code} item={item} isEOB={isEOB} />)}
         </Section>
       )}
 
@@ -124,7 +124,7 @@ export default function BillBreakdown({ bill }) {
           color="slate"
           collapsible
         >
-          {normal.map(item => <ChargeCard key={item.code} item={item} />)}
+          {normal.map(item => <ChargeCard key={item.code} item={item} isEOB={isEOB} />)}
         </Section>
       )}
 
