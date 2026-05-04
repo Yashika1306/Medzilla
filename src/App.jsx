@@ -7,7 +7,7 @@ import Profile from './pages/Profile'
 
 export default function App() {
   return (
-    <BrowserRouter basename="/medzilla">
+    <BrowserRouter>
       <Routes>
         <Route path="/" element={<Home />} />
         <Route path="/analyze" element={<Analyze />} />
