@@ -206,9 +206,21 @@ export default function LegalVerifier({ bill }) {
             <p className={`text-sm mt-1 ${overallStyle.text}`}>{overallInfo.desc}</p>
           </div>
           <div className="text-right shrink-0">
-            <p className="text-xs text-slate-500">Disputed amount</p>
-            <p className="text-2xl font-bold text-slate-800">${totalFlaggedAmount.toLocaleString()}</p>
-            <p className="text-xs text-slate-400">{chargeAnalyses.length} charge{chargeAnalyses.length !== 1 ? 's' : ''} reviewed</p>
+            {bill.documentType === 'eob' ? (
+              <>
+                <p className="text-xs text-slate-500">Your share (EOB)</p>
+                <p className="text-2xl font-bold text-slate-800">
+                  {bill.totals?.patientOwes ? `$${bill.totals.patientOwes.toLocaleString()}` : '—'}
+                </p>
+                <p className="text-xs text-slate-400">Get itemized bill for per-charge amounts</p>
+              </>
+            ) : (
+              <>
+                <p className="text-xs text-slate-500">Disputed amount</p>
+                <p className="text-2xl font-bold text-slate-800">${totalFlaggedAmount.toLocaleString()}</p>
+                <p className="text-xs text-slate-400">{chargeAnalyses.length} charge{chargeAnalyses.length !== 1 ? 's' : ''} reviewed</p>
+              </>
+            )}
           </div>
         </div>
       </div>

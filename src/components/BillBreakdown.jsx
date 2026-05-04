@@ -3,8 +3,9 @@ import { useNavigate } from 'react-router-dom'
 import ChargeCard from './ChargeCard'
 
 export default function BillBreakdown({ bill }) {
-  const { lineItems, totals, hospitalName, patientName, dateOfService, flagSummary, unbundlingWarnings } = bill
+  const { lineItems, totals, hospitalName, patientName, dateOfService, flagSummary, unbundlingWarnings, documentType } = bill
   const navigate = useNavigate()
+  const isEOB = documentType === 'eob'
 
   const disputed = lineItems.filter(i => i.flag === 'often_disputed')
   const questionable = lineItems.filter(i => i.flag === 'questionable')
@@ -14,6 +15,25 @@ export default function BillBreakdown({ bill }) {
 
   return (
     <div className="space-y-5">
+
+      {/* EOB warning banner */}
+      {isEOB && (
+        <div className="rounded-xl p-4 space-y-2" style={{ background: 'rgba(245,158,11,0.10)', border: '1px solid rgba(245,158,11,0.4)' }}>
+          <div className="flex items-center gap-2">
+            <span className="text-base">⚠️</span>
+            <p className="font-semibold text-sm" style={{ color: '#fbbf24' }}>This is an Explanation of Benefits (EOB) — not your hospital bill</p>
+          </div>
+          <p className="text-xs leading-relaxed" style={{ color: '#7a8fa8' }}>
+            An EOB is a summary from your insurance company. It shows what was billed and what insurance paid,
+            but it is <strong style={{ color: 'rgba(255,255,255,0.8)' }}>not the actual hospital itemized bill</strong>.
+            {totals?.patientOwes ? <> According to this EOB, you owe <strong style={{ color: '#fbbf24' }}>${totals.patientOwes.toLocaleString()}</strong>.</> : null}
+          </p>
+          <p className="text-xs" style={{ color: '#7a8fa8' }}>
+            For the most accurate dispute analysis, request your <strong style={{ color: 'rgba(255,255,255,0.8)' }}>itemized hospital bill</strong> from{' '}
+            {hospitalName ?? 'the hospital'} — you have a legal right to it. Upload that instead.
+          </p>
+        </div>
+      )}
 
       {/* Stats */}
       <div className="card grid grid-cols-2 md:grid-cols-4 gap-4">

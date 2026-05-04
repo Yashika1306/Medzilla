@@ -2,8 +2,16 @@ const CPT_REGEX = /\b(9[90]\d{3}|[78]\d{4}|[0-9]\d{4}|[A-HJ-Z]\d{4})\b/g
 const ICD10_REGEX = /\b([A-Z]\d{2}(?:\.\d{1,4})?[A-Z]?)\b/g
 const AMOUNT_REGEX = /\$?\s*([\d,]+(?:\.\d{2})?)/g
 
+function detectDocumentType(text) {
+  const upper = text.toUpperCase()
+  if (upper.includes('EXPLANATION OF BENEFITS') || upper.includes('THIS IS NOT A BILL') || upper.includes('EOB')) return 'eob'
+  if (upper.includes('REMITTANCE ADVICE') || upper.includes('REMITTANCE NOTICE')) return 'remittance'
+  return 'bill'
+}
+
 export function parseBill(rawText) {
   const lines = rawText.split('\n').map(l => l.trim()).filter(Boolean)
+  const documentType = detectDocumentType(rawText)
 
   const hospitalName = extractHospitalName(rawText)
   const patientName = extractPatientName(rawText)
@@ -15,6 +23,7 @@ export function parseBill(rawText) {
   return {
     rawText,
     extractedAt: new Date().toISOString(),
+    documentType,
     hospitalName,
     patientName,
     accountNumber,
@@ -55,8 +64,8 @@ function extractDateOfService(text) {
 
 function extractTotals(text) {
   const billed = extractAmount(text, /(?:total charges?|amount billed|gross charges?)[:\s]*\$?([\d,]+(?:\.\d{2})?)/i)
-  const covered = extractAmount(text, /(?:insurance paid|plan paid|amount paid by (?:insurance|plan))[:\s]*\$?([\d,]+(?:\.\d{2})?)/i)
-  const patientOwes = extractAmount(text, /(?:patient (?:responsibility|balance|owes?|amount due)|amount due|balance due|total due|you owe)[:\s]*\$?([\d,]+(?:\.\d{2})?)/i)
+  const covered = extractAmount(text, /(?:insurance paid|plan paid|amount paid by (?:insurance|plan)|plan.s share)[:\s]*\$?([\d,]+(?:\.\d{2})?)/i)
+  const patientOwes = extractAmount(text, /(?:patient (?:responsibility|balance|owes?|amount due)|amount due|balance due|total due|you owe|your (?:share|coinsurance))[:\s]*\$?([\d,]+(?:\.\d{2})?)/i)
 
   return { billed, covered, patientOwes }
 }
