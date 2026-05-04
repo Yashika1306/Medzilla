@@ -65,7 +65,12 @@ function extractDateOfService(text) {
 function extractTotals(text) {
   const billed = extractAmount(text, /(?:total charges?|amount billed|gross charges?)[:\s]*\$?([\d,]+(?:\.\d{2})?)/i)
   const covered = extractAmount(text, /(?:insurance paid|plan paid|amount paid by (?:insurance|plan)|plan.s share)[:\s]*\$?([\d,]+(?:\.\d{2})?)/i)
-  const patientOwes = extractAmount(text, /(?:patient (?:responsibility|balance|owes?|amount due)|amount due|balance due|total due|you owe|your (?:share|coinsurance))[:\s]*\$?([\d,]+(?:\.\d{2})?)/i)
+
+  // Try multiple patterns for patient amount — EOBs use "Your share" or "Your coinsurance"
+  const patientOwes =
+    extractAmount(text, /(?:patient (?:responsibility|balance|owes?|amount due)|amount due|balance due|total due|you owe)[:\s]*\$?([\d,]+(?:\.\d{2})?)/i) ??
+    extractAmount(text, /your\s+(?:share|coinsurance)[^\n]{0,30}\$\s*([\d,]+(?:\.\d{2}))/i) ??
+    extractAmount(text, /\$\s*([\d,]+\.\d{2})\s*(?:\n|$)(?!.*\$\s*[\d,]+\.\d{2})/i) // last dollar amount on its own line
 
   return { billed, covered, patientOwes }
 }

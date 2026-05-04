@@ -59,15 +59,24 @@ function ChargeCard({ a, bill }) {
             )}
           </div>
           <p className="text-sm font-medium text-slate-800 mt-0.5">{a.plainEnglish}</p>
-          {a.amount && (
-            <p className="text-xs text-slate-500 mt-0.5">
-              Billed: <strong>${a.amount.toLocaleString()}</strong>
-              {a.medicareRate && (
-                <> · Medicare: <strong>${a.medicareRate}</strong>
-                  {a.multiplier && <span className={`ml-1 font-bold ${a.multiplier >= 5 ? 'text-red-600' : 'text-amber-600'}`}>({a.multiplier.toFixed(1)}× markup)</span>}
-                </>
-              )}
-            </p>
+          {bill.documentType === 'eob' ? (
+            a.medicareRate && (
+              <p className="text-xs text-slate-500 mt-0.5">
+                Medicare rate: <strong>${a.medicareRate}</strong>
+                <span className="ml-1 text-amber-600">(get itemized bill for your billed amount)</span>
+              </p>
+            )
+          ) : (
+            a.amount && (
+              <p className="text-xs text-slate-500 mt-0.5">
+                Billed: <strong>${a.amount.toLocaleString()}</strong>
+                {a.medicareRate && (
+                  <> · Medicare: <strong>${a.medicareRate}</strong>
+                    {a.multiplier && <span className={`ml-1 font-bold ${a.multiplier >= 5 ? 'text-red-600' : 'text-amber-600'}`}>({a.multiplier.toFixed(1)}× markup)</span>}
+                  </>
+                )}
+              </p>
+            )
           )}
         </div>
         <span className="text-slate-400 text-xs shrink-0 mt-1">{open ? '▲' : '▼'}</span>
