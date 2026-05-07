@@ -14,8 +14,6 @@ export default function Analyze() {
   const [bill, setBill] = useState(null)
   const [tab, setTab] = useState('Charges')
   const [showReplace, setShowReplace] = useState(false)
-  const [editingOwes, setEditingOwes] = useState(false)
-  const [owesInput, setOwesInput] = useState('')
   const navigate = useNavigate()
 
   useEffect(() => {
@@ -29,18 +27,12 @@ export default function Analyze() {
     setBill(b)
     setTab('Charges')
     setShowReplace(false)
-    setEditingOwes(false)
-    setOwesInput('')
   }
 
-  function saveOwes() {
-    const val = parseFloat(owesInput.replace(/[$,\s]/g, ''))
-    if (isNaN(val) || val <= 0) return
-    const updated = { ...bill, totals: { ...(bill.totals ?? {}), patientOwes: val } }
+  function updateTotals(patch) {
+    const updated = { ...bill, totals: { ...(bill.totals ?? {}), ...patch } }
     setBill(updated)
     localStorage.setItem('medzilla_bill', JSON.stringify(updated))
-    setEditingOwes(false)
-    setOwesInput('')
   }
 
   const flaggedCount = bill?.lineItems?.filter(i => i.flag !== 'normal').length ?? 0
@@ -86,33 +78,12 @@ export default function Analyze() {
 
               <div className="mt-4 rounded-xl px-4 py-3" style={{ background: 'rgba(124,58,237,0.10)', border: '1px solid rgba(124,58,237,0.25)' }}>
                 <p className="text-xs" style={{ color: '#7a8fa8' }}>You owe</p>
-                {bill.totals?.patientOwes != null && !editingOwes ? (
-                  <div className="flex items-end justify-between gap-1">
-                    <p className="text-2xl font-bold mt-0.5" style={{ color: '#a78bfa' }}>
-                      ${bill.totals.patientOwes.toLocaleString()}
-                    </p>
-                    <button onClick={() => { setEditingOwes(true); setOwesInput(String(bill.totals.patientOwes)) }}
-                      className="text-xs mb-1" style={{ color: '#5c7090' }}>edit</button>
-                  </div>
-                ) : editingOwes ? (
-                  <div className="mt-1 flex gap-1">
-                    <input
-                      autoFocus
-                      type="text"
-                      value={owesInput}
-                      onChange={e => setOwesInput(e.target.value)}
-                      onKeyDown={e => { if (e.key === 'Enter') saveOwes(); if (e.key === 'Escape') setEditingOwes(false) }}
-                      placeholder="e.g. 1538.55"
-                      className="flex-1 rounded px-2 py-1 text-sm font-mono bg-slate-800 border border-violet-400 text-white focus:outline-none"
-                    />
-                    <button onClick={saveOwes} className="text-xs px-2 py-1 rounded bg-violet-600 text-white font-semibold">✓</button>
-                  </div>
+                {bill.totals?.patientOwes != null ? (
+                  <p className="text-2xl font-bold mt-0.5" style={{ color: '#a78bfa' }}>
+                    ${bill.totals.patientOwes.toLocaleString()}
+                  </p>
                 ) : (
-                  <div className="flex items-end justify-between gap-1">
-                    <p className="text-lg font-semibold mt-0.5" style={{ color: '#5c7090' }}>Not found in PDF</p>
-                    <button onClick={() => setEditingOwes(true)}
-                      className="text-xs mb-1 underline" style={{ color: '#a78bfa' }}>enter</button>
-                  </div>
+                  <p className="text-lg font-semibold mt-0.5" style={{ color: '#5c7090' }}>Not found in PDF</p>
                 )}
                 {bill.totals?.billed != null && (
                   <p className="text-xs mt-1" style={{ color: '#5c7090' }}>
@@ -184,7 +155,7 @@ export default function Analyze() {
               </div>
             </div>
 
-            {tab === 'Charges' && <BillBreakdown bill={bill} />}
+            {tab === 'Charges' && <BillBreakdown bill={bill} onUpdateTotals={updateTotals} />}
             {tab === 'Legal Review' && <LegalVerifier bill={bill} />}
             {tab === 'Chat' && <ChatInterface bill={bill} />}
             {tab === 'Insurance Terms' && <InsuranceExplainer />}

@@ -2,7 +2,7 @@ import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import ChargeCard from './ChargeCard'
 
-export default function BillBreakdown({ bill }) {
+export default function BillBreakdown({ bill, onUpdateTotals }) {
   const { lineItems, totals, hospitalName, patientName, dateOfService, flagSummary, unbundlingWarnings, documentType } = bill
   const navigate = useNavigate()
   const isEOB = documentType === 'eob'
@@ -37,9 +37,9 @@ export default function BillBreakdown({ bill }) {
 
       {/* Stats */}
       <div className="card grid grid-cols-2 md:grid-cols-4 gap-4">
-        <Stat label="Total Billed" value={totals?.billed ? '$' + totals.billed.toLocaleString() : '—'} />
-        <Stat label="Insurance Paid" value={totals?.covered ? '$' + totals.covered.toLocaleString() : '—'} />
-        <Stat label="You Owe" value={totals?.patientOwes ? '$' + totals.patientOwes.toLocaleString() : '—'} highlight />
+        <EditableStat label="Total Billed" value={totals?.billed} field="billed" onSave={onUpdateTotals} />
+        <EditableStat label="Insurance Paid" value={totals?.covered} field="covered" onSave={onUpdateTotals} />
+        <EditableStat label="You Owe" value={totals?.patientOwes} field="patientOwes" onSave={onUpdateTotals} highlight />
         <Stat label="Charges Flagged" value={`${totalFlagged} of ${lineItems.length}`} />
       </div>
 
@@ -132,6 +132,59 @@ export default function BillBreakdown({ bill }) {
       <p className="text-xs text-slate-400 text-center leading-relaxed px-2">
         Flags are based on CMS Correct Coding Initiative rules, Medicare necessity standards (42 U.S.C. § 1395y), and AMA CPT documentation guidelines — all publicly available federal sources. This is not legal advice.
       </p>
+    </div>
+  )
+}
+
+function EditableStat({ label, value, field, onSave, highlight }) {
+  const [editing, setEditing] = useState(false)
+  const [input, setInput] = useState('')
+
+  function save() {
+    const val = parseFloat(input.replace(/[$,\s]/g, ''))
+    if (!isNaN(val) && val >= 0) onSave?.({ [field]: val })
+    setEditing(false)
+    setInput('')
+  }
+
+  if (editing) {
+    return (
+      <div>
+        <p className="text-xs text-slate-500 uppercase tracking-wide mb-1">{label}</p>
+        <div className="flex gap-1">
+          <input
+            autoFocus
+            type="text"
+            value={input}
+            onChange={e => setInput(e.target.value)}
+            onKeyDown={e => { if (e.key === 'Enter') save(); if (e.key === 'Escape') setEditing(false) }}
+            placeholder="e.g. 1200"
+            className="flex-1 min-w-0 rounded px-2 py-1 text-sm font-mono bg-slate-800 border border-violet-400 text-white focus:outline-none"
+          />
+          <button onClick={save} className="text-xs px-2 py-1 rounded bg-violet-600 text-white font-semibold">✓</button>
+        </div>
+      </div>
+    )
+  }
+
+  return (
+    <div>
+      <p className="text-xs text-slate-500 uppercase tracking-wide">{label}</p>
+      {value != null ? (
+        <div className="flex items-end gap-1">
+          <p className={`text-xl font-bold mt-0.5 ${highlight ? 'text-violet-700' : 'text-slate-800'}`}>
+            ${value.toLocaleString()}
+          </p>
+          <button onClick={() => { setEditing(true); setInput(String(value)) }}
+            className="text-xs mb-1 text-slate-400 hover:text-slate-600">edit</button>
+        </div>
+      ) : (
+        <div className="flex items-end gap-1">
+          <p className="text-xl font-bold mt-0.5 text-slate-400">—</p>
+          <button onClick={() => setEditing(true)}
+            className="text-xs mb-1 underline" style={{ color: '#a78bfa' }}>enter</button>
+        </div>
+      )}
     </div>
   )
 }
