@@ -2,7 +2,6 @@ import { useState } from 'react'
 import { analyzeLegalStrength, STRENGTH_LEVELS, LETTER_CHECKLIST } from '../utils/legalAnalyzer'
 import { generateDisputeLetter } from '../utils/letterGenerator'
 import { loadProfile } from './UserProfileForm'
-import { analyzeChargeWithAI, getApiKey } from '../utils/geminiClient'
 
 const STRENGTH_STYLE = {
   weak:        { bg: 'bg-red-50',      text: 'text-red-800',     border: 'border-red-200',     dot: 'bg-red-400' },
@@ -13,48 +12,23 @@ const STRENGTH_STYLE = {
 
 function ChargeCard({ a, bill }) {
   const [open, setOpen] = useState(false)
-  const [aiResult, setAiResult] = useState(null)
-  const [aiLoading, setAiLoading] = useState(false)
-  const [aiError, setAiError] = useState(null)
-  const hasKey = !!getApiKey()
 
   const s = STRENGTH_STYLE[a.strength]
-  const display = aiResult ?? a
-
-  async function fetchAI() {
-    setAiLoading(true)
-    setAiError(null)
-    try {
-      const context = `${bill.hospitalName ?? 'unknown hospital'}, date of service ${bill.dateOfService ?? 'unknown'}, total bill $${bill.totals?.patientOwes ?? 'unknown'}`
-      const result = await analyzeChargeWithAI(a, context)
-      setAiResult(result)
-    } catch (e) {
-      setAiError(e.message)
-    } finally {
-      setAiLoading(false)
-    }
-  }
-
-  const effectiveStrength = aiResult?.strength ?? a.strength
-  const effectiveStyle = STRENGTH_STYLE[effectiveStrength] ?? s
 
   return (
-    <div className={`rounded-xl border-2 overflow-hidden ${effectiveStyle.border}`}>
+    <div className={`rounded-xl border-2 overflow-hidden ${s.border}`}>
       <button
-        className={`w-full flex items-start gap-3 p-4 text-left ${effectiveStyle.bg}`}
+        className={`w-full flex items-start gap-3 p-4 text-left ${s.bg}`}
         onClick={() => setOpen(v => !v)}
       >
-        <span className={`w-2.5 h-2.5 rounded-full mt-1.5 shrink-0 ${effectiveStyle.dot}`} />
+        <span className={`w-2.5 h-2.5 rounded-full mt-1.5 shrink-0 ${s.dot}`} />
         <div className="flex-1 min-w-0">
           <div className="flex items-center gap-2 flex-wrap">
             <span className="font-mono text-sm font-bold text-slate-600">{a.code}</span>
-            <span className={`text-xs font-semibold px-2 py-0.5 rounded-full border ${effectiveStyle.bg} ${effectiveStyle.text} ${effectiveStyle.border}`}>
-              {STRENGTH_LEVELS[effectiveStrength]?.label}
+            <span className={`text-xs font-semibold px-2 py-0.5 rounded-full border ${s.bg} ${s.text} ${s.border}`}>
+              {STRENGTH_LEVELS[a.strength]?.label}
             </span>
-            {aiResult && (
-              <span className="text-xs bg-violet-100 text-violet-700 border border-violet-200 px-2 py-0.5 rounded-full font-medium">✦ AI</span>
-            )}
-            {!a.hasRule && !aiResult && (
+            {!a.hasRule && (
               <span className="text-xs bg-slate-100 text-slate-500 border border-slate-200 px-2 py-0.5 rounded-full">Rule-based fallback</span>
             )}
           </div>
@@ -84,53 +58,15 @@ function ChargeCard({ a, bill }) {
 
       {open && (
         <div className="p-4 bg-white space-y-4 border-t border-slate-100">
-
-          {/* AI upgrade button for codes without hardcoded rules */}
-          {!a.hasRule && !aiResult && hasKey && (
-            <button
-              onClick={e => { e.stopPropagation(); fetchAI() }}
-              disabled={aiLoading}
-              className="w-full flex items-center justify-center gap-2 rounded-lg bg-violet-600 hover:bg-violet-700 text-white text-sm font-semibold py-2.5 transition-colors disabled:opacity-60"
-            >
-              {aiLoading ? (
-                <><span className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" /> Analyzing with Gemini…</>
-              ) : (
-                <>✦ Analyze this charge with AI</>
-              )}
-            </button>
-          )}
-
-          {/* AI available but hasn't run yet for non-rule codes, no key */}
-          {!a.hasRule && !aiResult && !hasKey && (
-            <div className="rounded-lg bg-violet-50 border border-violet-200 px-3 py-2 text-xs text-violet-700">
-              Add your Gemini API key in <strong>Profile</strong> to get a full AI-powered analysis of this charge.
-            </div>
-          )}
-
-          {/* AI upgrade button even for rule-based codes */}
-          {a.hasRule && !aiResult && hasKey && (
-            <button
-              onClick={e => { e.stopPropagation(); fetchAI() }}
-              disabled={aiLoading}
-              className="text-xs text-violet-600 hover:underline font-medium flex items-center gap-1"
-            >
-              {aiLoading ? <><span className="w-3 h-3 border border-violet-400 border-t-transparent rounded-full animate-spin" /> Fetching AI analysis…</> : '✦ Get AI analysis for this charge'}
-            </button>
-          )}
-
-          {aiError && (
-            <div className="rounded-lg bg-red-50 border border-red-200 px-3 py-2 text-xs text-red-700">{aiError}</div>
-          )}
-
           <div>
             <p className="text-xs font-semibold text-slate-500 uppercase tracking-wide">Legal Basis</p>
-            <p className="text-sm text-slate-800 mt-1 font-medium">{display.legalBasis}</p>
+            <p className="text-sm text-slate-800 mt-1 font-medium">{a.legalBasis}</p>
           </div>
 
           <div>
             <p className="text-xs font-semibold text-slate-500 uppercase tracking-wide mb-1">Applicable Law & Guidelines</p>
             <div className="space-y-2">
-              {(display.laws ?? a.laws).map((law, i) => (
+              {(a.laws ?? []).map((law, i) => (
                 <div key={i} className="rounded-lg bg-slate-50 border border-slate-100 px-3 py-2">
                   <p className="text-xs font-bold text-slate-700">{law.cite}</p>
                   <p className="text-xs text-slate-500 mt-0.5">{law.desc}</p>
@@ -141,12 +77,12 @@ function ChargeCard({ a, bill }) {
 
           <div>
             <p className="text-xs font-semibold text-slate-500 uppercase tracking-wide">The Argument</p>
-            <p className="text-sm text-slate-700 mt-1 leading-relaxed">{display.argument}</p>
+            <p className="text-sm text-slate-700 mt-1 leading-relaxed">{a.argument}</p>
           </div>
 
-          <div className={`rounded-lg border p-3 ${effectiveStyle.border} ${effectiveStyle.bg}`}>
-            <p className={`text-xs font-semibold uppercase tracking-wide ${effectiveStyle.text}`}>What to request from the hospital</p>
-            <p className={`text-sm mt-1 ${effectiveStyle.text}`}>{display.whatToRequest}</p>
+          <div className={`rounded-lg border p-3 ${s.border} ${s.bg}`}>
+            <p className={`text-xs font-semibold uppercase tracking-wide ${s.text}`}>What to request from the hospital</p>
+            <p className={`text-sm mt-1 ${s.text}`}>{a.whatToRequest}</p>
           </div>
         </div>
       )}
@@ -157,7 +93,6 @@ function ChargeCard({ a, bill }) {
 export default function LegalVerifier({ bill }) {
   const [showSuggestions, setShowSuggestions] = useState(false)
   const [copied, setCopied] = useState(null)
-  const hasKey = !!getApiKey()
 
   const profile = loadProfile()
   const disputeLetterText = generateDisputeLetter({
@@ -194,13 +129,9 @@ export default function LegalVerifier({ bill }) {
   return (
     <div className="space-y-6">
 
-      {/* AI status banner */}
-      <div className={`rounded-lg px-4 py-3 text-xs flex items-center gap-2 ${hasKey ? 'bg-violet-50 border border-violet-200 text-violet-800' : 'bg-slate-100 border border-slate-200 text-slate-500'}`}>
-        <span>{hasKey ? '✦' : '○'}</span>
-        {hasKey
-          ? <span><strong>Gemini AI enabled.</strong> Click any charge to expand, then use "Analyze with AI" for a full analysis of any code — including ones not in the built-in rules.</span>
-          : <span><strong>Running on built-in rules only.</strong> Add your Gemini API key in Profile to unlock AI-powered analysis for any charge code.</span>
-        }
+      {/* Info banner */}
+      <div className="rounded-lg px-4 py-3 text-xs bg-slate-50 border border-slate-200 text-slate-500">
+        Analysis based on CMS billing rules and Medicare rate data.
       </div>
 
       {/* Overall strength */}

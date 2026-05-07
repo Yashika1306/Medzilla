@@ -18,7 +18,7 @@ export function parseBill(rawText) {
   const accountNumber = extractAccountNumber(rawText)
   const dateOfService = extractDateOfService(rawText)
   const totals = extractTotals(rawText)
-  const lineItems = extractLineItems(lines, rawText)
+  const lineItems = extractLineItems(lines, rawText, documentType)
 
   return {
     rawText,
@@ -186,7 +186,7 @@ function extractAmount(text, regex) {
   return parseFloat(m[1].replace(/,/g, ''))
 }
 
-function extractLineItems(lines, fullText) {
+function extractLineItems(lines, fullText, documentType) {
   const items = []
   const seenCodes = new Set()
 
@@ -203,7 +203,9 @@ function extractLineItems(lines, fullText) {
       if (seenCodes.has(code)) continue
       seenCodes.add(code)
 
-      const amount = extractLineAmount(line)
+      // EOB lines have multiple dollar columns (Member Rate, Plan's Share, etc.)
+      // — amounts are unreliable, so skip them to avoid showing wrong values.
+      const amount = documentType === 'eob' ? null : extractLineAmount(line)
       items.push({
         code,
         codeType: type,

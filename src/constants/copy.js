@@ -38,7 +38,7 @@ export const COPY = {
   doNotPay: 'Do NOT pay anything until you complete Steps 1–3. Paying validates the charges and surrenders your negotiating position.',
 
   chatPlaceholder: 'Ask about your bill... e.g. "What is 99285?" or "Why was I charged for blood tests?"',
-  chatDisclaimer: 'Answers are based on your actual bill data. Add a Gemini API key in Profile for full AI-powered responses.',
+  chatDisclaimer: 'Responses are based on your uploaded bill and US patient rights information. This is not legal advice.',
 
   letterIntro: 'These letters are generated from your bill data. Fill in your personal details, then print or copy to send.',
 }
