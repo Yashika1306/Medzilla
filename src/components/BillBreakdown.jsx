@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import ChargeCard from './ChargeCard'
+import { submitCorrection, INSURERS } from '../constants/analytics'
 
 export default function BillBreakdown({ bill, onUpdateTotals }) {
   const { lineItems, totals, hospitalName, patientName, dateOfService, flagSummary, unbundlingWarnings, documentType } = bill
@@ -136,55 +137,108 @@ export default function BillBreakdown({ bill, onUpdateTotals }) {
   )
 }
 
+// mode: 'show' | 'enter' | 'correct'
+// 'enter'   — value missing, input shown immediately (Feature 1)
+// 'show'    — value displayed + "Amount looks wrong?" link (Feature 3)
+// 'correct' — correction form: number input + insurer select + analytics submit
 function EditableStat({ label, value, field, onSave, highlight }) {
-  const [editing, setEditing] = useState(false)
+  const [mode, setMode] = useState(value == null ? 'enter' : 'show')
   const [input, setInput] = useState('')
+  const [insurer, setInsurer] = useState('')
 
-  function save() {
+  // If value was externally filled (e.g. parser ran again), exit 'enter' mode
+  const effectiveMode = (mode === 'enter' && value != null) ? 'show' : mode
+
+  function saveEntered() {
     const val = parseFloat(input.replace(/[$,\s]/g, ''))
-    if (!isNaN(val) && val >= 0) onSave?.({ [field]: val })
-    setEditing(false)
+    if (isNaN(val) || val < 0) return
+    onSave?.({ [field]: val })
+    setMode('show')
     setInput('')
   }
 
-  if (editing) {
+  function saveCorrection() {
+    const val = parseFloat(input.replace(/[$,\s]/g, ''))
+    if (isNaN(val) || val < 0) return
+    onSave?.({ [field]: val })
+    submitCorrection(label, val, insurer)
+    setMode('show')
+    setInput('')
+    setInsurer('')
+  }
+
+  const inputClass = 'flex-1 min-w-0 rounded px-2 py-1 text-sm font-mono bg-slate-800 border text-white focus:outline-none'
+
+  if (effectiveMode === 'enter') {
     return (
       <div>
-        <p className="text-xs text-slate-500 uppercase tracking-wide mb-1">{label}</p>
+        <p className="text-xs text-slate-500 uppercase tracking-wide">{label}</p>
+        <p className="text-xs mt-0.5 mb-1.5" style={{ color: '#f59e0b' }}>Not found — enter below</p>
         <div className="flex gap-1">
           <input
-            autoFocus
             type="text"
             value={input}
             onChange={e => setInput(e.target.value)}
-            onKeyDown={e => { if (e.key === 'Enter') save(); if (e.key === 'Escape') setEditing(false) }}
-            placeholder="e.g. 1200"
-            className="flex-1 min-w-0 rounded px-2 py-1 text-sm font-mono bg-slate-800 border border-violet-400 text-white focus:outline-none"
+            onKeyDown={e => { if (e.key === 'Enter') saveEntered() }}
+            placeholder="e.g. 1200.00"
+            className={`${inputClass} border-amber-400/60 focus:border-violet-400`}
           />
-          <button onClick={save} className="text-xs px-2 py-1 rounded bg-violet-600 text-white font-semibold">✓</button>
+          <button onClick={saveEntered} className="text-xs px-2 py-1 rounded bg-violet-600 text-white font-semibold">✓</button>
         </div>
       </div>
     )
   }
 
+  if (effectiveMode === 'correct') {
+    return (
+      <div>
+        <p className="text-xs text-slate-500 uppercase tracking-wide mb-1">{label}</p>
+        <p className="text-xs mb-1.5" style={{ color: '#9aabca' }}>What does your bill say?</p>
+        <div className="flex gap-1 mb-1.5">
+          <input
+            autoFocus
+            type="text"
+            value={input}
+            onChange={e => setInput(e.target.value)}
+            onKeyDown={e => { if (e.key === 'Enter') saveCorrection(); if (e.key === 'Escape') setMode('show') }}
+            placeholder="e.g. 13255.04"
+            className={`${inputClass} border-violet-400`}
+          />
+        </div>
+        <select
+          value={insurer}
+          onChange={e => setInsurer(e.target.value)}
+          className="w-full text-xs rounded px-2 py-1.5 mb-1.5 bg-slate-800 border border-slate-600 text-slate-300 focus:outline-none"
+        >
+          <option value="">Insurer (optional — helps us fix parsing)</option>
+          {INSURERS.map(i => <option key={i} value={i}>{i}</option>)}
+        </select>
+        <div className="flex gap-1">
+          <button onClick={saveCorrection} className="flex-1 text-xs py-1 rounded bg-violet-600 text-white font-semibold">Save</button>
+          <button onClick={() => setMode('show')} className="text-xs px-2 py-1 rounded bg-slate-700 text-slate-400">✕</button>
+        </div>
+      </div>
+    )
+  }
+
+  // mode === 'show'
   return (
     <div>
       <p className="text-xs text-slate-500 uppercase tracking-wide">{label}</p>
-      {value != null ? (
-        <div className="flex items-end gap-1">
-          <p className={`text-xl font-bold mt-0.5 ${highlight ? 'text-violet-700' : 'text-slate-800'}`}>
-            ${value.toLocaleString()}
-          </p>
-          <button onClick={() => { setEditing(true); setInput(String(value)) }}
-            className="text-xs mb-1 text-slate-400 hover:text-slate-600">edit</button>
-        </div>
-      ) : (
-        <div className="flex items-end gap-1">
-          <p className="text-xl font-bold mt-0.5 text-slate-400">—</p>
-          <button onClick={() => setEditing(true)}
-            className="text-xs mb-1 underline" style={{ color: '#a78bfa' }}>enter</button>
-        </div>
-      )}
+      <div className="flex items-end gap-1 mt-0.5">
+        <p className={`text-xl font-bold ${highlight ? 'text-violet-700' : 'text-slate-800'}`}>
+          ${value.toLocaleString()}
+        </p>
+        <button onClick={() => { setMode('correct'); setInput(String(value)) }}
+          className="text-xs mb-0.5 text-slate-400 hover:text-slate-600">edit</button>
+      </div>
+      <button
+        onClick={() => { setMode('correct'); setInput(String(value)) }}
+        className="text-xs mt-0.5 hover:underline"
+        style={{ color: '#f87171' }}
+      >
+        Amount looks wrong?
+      </button>
     </div>
   )
 }

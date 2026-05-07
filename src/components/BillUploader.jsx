@@ -13,6 +13,7 @@ export default function BillUploader({ onBillParsed }) {
   const [error, setError] = useState(null)
   const [dragging, setDragging] = useState(false)
   const [showManual, setShowManual] = useState(false)
+  const [showHelp, setShowHelp] = useState(false)
   const inputRef = useRef()
 
   async function handleFile(file) {
@@ -196,6 +197,53 @@ export default function BillUploader({ onBillParsed }) {
           onBillParsed(bill)
         }} />
       )}
+
+      {/* Help section */}
+      <div className="mt-2">
+        <button
+          onClick={() => setShowHelp(v => !v)}
+          className="flex items-center gap-1 mx-auto text-xs transition-colors"
+          style={{ color: showHelp ? '#a78bfa' : '#445878' }}
+        >
+          Having trouble with your bill?
+          <span className="text-xs">{showHelp ? '↑' : '↓'}</span>
+        </button>
+
+        {showHelp && (
+          <div className="mt-3 rounded-xl p-4 space-y-4" style={{ background: '#0d1220', border: '1px solid #1c2d42' }}>
+
+            <HelpItem
+              title="EOB vs. Hospital Bill — what's the difference?"
+              body="An EOB (Explanation of Benefits) is sent by your insurance company after a claim. It shows what was billed and what they paid — but it is NOT a bill. The actual hospital itemized bill comes separately from the hospital and lists every charge by CPT code. Upload the itemized bill if you have it."
+            />
+
+            <HelpItem
+              title="Which document should I upload?"
+              body="If you have both, upload the hospital's itemized bill — it gives the most detail for disputes and charge flagging. If you only have the EOB, upload that. The app detects both formats and tells you which one it found."
+            />
+
+            <HelpItem
+              title="Where to find your amounts"
+              body="On an EOB: look for 'Your Share', 'Member Responsibility', or 'Coinsurance' — that's what you owe. On a hospital bill: look for 'Patient Balance', 'Amount Due', or the bold total at the bottom of the last page."
+            />
+
+            <HelpItem
+              title="Scanned or photographed bills"
+              body="This app reads text from digital PDFs. If your PDF is a photo or scan (text is not selectable), the app automatically tries OCR — this takes 20–40 seconds. If OCR fails, use 'Enter charges manually' to type in your charges instead."
+            />
+
+          </div>
+        )}
+      </div>
+    </div>
+  )
+}
+
+function HelpItem({ title, body }) {
+  return (
+    <div className="space-y-1">
+      <p className="text-xs font-semibold" style={{ color: '#c8d4ea' }}>{title}</p>
+      <p className="text-xs leading-relaxed" style={{ color: '#5c7090' }}>{body}</p>
     </div>
   )
 }
