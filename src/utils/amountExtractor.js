@@ -162,21 +162,23 @@ function totalsRowFallback(text, docType) {
       .map(m => parseFloat(m[1].replace(/,/g, '')))
 
     if (nums.length >= 7) {
-      // Wide multi-column row (e.g. Aetna: billed, memberRate, notPayable,
-      // deductible, copay, remaining, planShare, coinsurance, yourShare)
-      // billed = nums[0], plan's share = nums[-3], your share = nums[-1]
-      const pos = nums.filter(n => n > 0)
-      if (!pos.length) continue
+      // Wide multi-column EOB row (Aetna column order):
+      // billed | memberRate | notPayable | deductible | copay | remaining | planShare | coinsurance | yourShare
+      //   [0]       [1]           [2]         [3]       [4]      [5]         [-3]          [-2]         [-1]
+      //
+      // Guard: nums[0] > 100 ensures this is an aggregate totals row, NOT a
+      // small individual service row (e.g. the $0.04 CPT 99199 row where every
+      // column is $0.04 and nums[0] = 0.04).
+      if (nums[0] <= 100) continue
       return {
-        billed:    pos.length > 0 ? { value: pos[0], confidence: 'low', matchedLabel: 'totals-row[0]' } : null,
-        insurance: pos.length >= 3 ? { value: pos[pos.length - 3], confidence: 'low', matchedLabel: 'totals-row[-3]' } : null,
-        owe:       { value: pos[pos.length - 1], confidence: 'low', matchedLabel: 'totals-row[-1]' },
+        billed:    { value: nums[0],                confidence: 'medium', matchedLabel: 'multi-col[0]' },
+        insurance: { value: nums[nums.length - 3],  confidence: 'medium', matchedLabel: 'multi-col[-3]' },
+        owe:       { value: nums[nums.length - 1],  confidence: 'medium', matchedLabel: 'multi-col[-1]' },
       }
     }
 
     if (nums.length >= 4 && /total|balance|due|amount/i.test(line)) {
-      // Simpler totals row on a line that mentions total/balance/etc.
-      // Rightmost amount is most likely the patient-owed balance.
+      // Simpler totals row — rightmost amount is most likely the patient balance
       return {
         billed:    null,
         insurance: null,
@@ -213,11 +215,32 @@ function sanityCheck(billed, insurance, owe, docType) {
 export function extractAmounts(text) {
   const docType = detectDocumentType(text)
 
-  let billedResult    = extractTotalBilled(text)
-  let insuranceResult = extractInsurancePaid(text)
-  let oweResult       = extractYouOwe(text, docType)
+  let billedResult    = null
+  let insuranceResult = null
+  let oweResult       = null
 
-  // Step 5: fill in any remaining nulls via the smart fallback
+  // For EOBs: run multi-column row detection FIRST.
+  // EOB tables (Aetna, UHC, BCBS, etc.) repeat column headers for each service
+  // section, so label-based extraction would hit individual service rows (which
+  // can have tiny amounts like $0.04) before the aggregate totals row.
+  // The multi-column approach finds the FIRST line with 7+ amounts where the
+  // first amount > $100 — that's always the real totals row.
+  if (docType === 'eob') {
+    const fb = totalsRowFallback(text, docType)
+    if (fb) {
+      billedResult    = fb.billed
+      insuranceResult = fb.insurance
+      oweResult       = fb.owe
+    }
+  }
+
+  // Fill any remaining gaps with label-based extraction
+  // (primary for hospital bills; fills gaps for EOBs that don't have a wide row)
+  if (!billedResult)    billedResult    = extractTotalBilled(text)
+  if (!insuranceResult) insuranceResult = extractInsurancePaid(text)
+  if (!oweResult)       oweResult       = extractYouOwe(text, docType)
+
+  // Final fallback for hospital bills that have a numeric totals row
   if (!billedResult || !oweResult) {
     const fb = totalsRowFallback(text, docType)
     if (fb) {
