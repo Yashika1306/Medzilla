@@ -145,22 +145,22 @@ const INSURANCE_LABELS = [
   'amount paid by plan',
   'paid by insurance',
   'we paid',
-  'plan amount',
-  'plan benefit',
 ]
 
 export function extractInsurancePaid(text) {
-  return extractByLabels(text, INSURANCE_LABELS, 0)
+  // minAmount=1 prevents noise values like $0.04 from individual service rows
+  return extractByLabels(text, INSURANCE_LABELS, 1)
 }
 
 // ── STEP 5: Smart fallback — totals row ───────────────────────────────────────
 
 function totalsRowFallback(text, docType) {
   const lines = text.split('\n')
-  const DOLLAR_RE = /\$?([\d,]+\.\d{2})/g
 
   for (const line of lines) {
-    const nums = [...line.matchAll(DOLLAR_RE)]
+    // Use a fresh regex object per line to avoid lastIndex state bugs
+    // with reused global RegExp objects in some JS engines.
+    const nums = [...line.matchAll(/\$?([\d,]+\.\d{2})/g)]
       .map(m => parseFloat(m[1].replace(/,/g, '')))
 
     if (nums.length >= 7) {
