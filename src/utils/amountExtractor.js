@@ -54,7 +54,8 @@ export function detectDocumentType(text) {
 
 function parseDollar(str) {
   if (!str) return null
-  const m = str.match(/\$?([\d,]+\.\d{2})/)
+  // Match optional currency symbol/code before the number
+  const m = str.match(/(?:RS\.?|INR|₹|\$)?\s*([\d,]+\.\d{2})/i)
   return m ? parseFloat(m[1].replace(/,/g, '')) : null
 }
 
@@ -101,7 +102,10 @@ function extractByLabels(text, labels, minAmount = 0) {
 // These patterns use \s* between words and [:\s]* between label and value,
 // handling both "Amount billed: $13,255.04" and "Amountbilled$13255.04".
 
+const CURRENCY = /(?:RS\.?|INR|₹|\$)?/i  // used inline in template literals below
+
 const OWE_FLEX = [
+  // US formats
   { re: /your\s*share\s*[:\s]*\$?([\d,]+\.\d{2})/i,           label: 'flex:your-share' },
   { re: /member\s*cost\s*share\s*[:\s]*\$?([\d,]+\.\d{2})/i,  label: 'flex:member-cost-share' },
   { re: /patient\s*responsibility\s*[:\s]*\$?([\d,]+\.\d{2})/i, label: 'flex:patient-resp' },
@@ -109,14 +113,26 @@ const OWE_FLEX = [
   { re: /coinsurance\s*[:\s]*\$?([\d,]+\.\d{2})/i,             label: 'flex:coinsurance' },
   { re: /balance\s*due\s*[:\s]*\$?([\d,]+\.\d{2})/i,           label: 'flex:balance-due' },
   { re: /amount\s*due\s*[:\s]*\$?([\d,]+\.\d{2})/i,            label: 'flex:amount-due' },
+  // Indian / international formats
+  { re: /net\s*payable\s*[:\s]*(?:RS\.?|INR|₹|\$)?\s*([\d,]+\.\d{2})/i,    label: 'flex:net-payable' },
+  { re: /amount\s*payable\s*[:\s]*(?:RS\.?|INR|₹|\$)?\s*([\d,]+\.\d{2})/i, label: 'flex:amount-payable' },
+  { re: /patient\s*payable\s*[:\s]*(?:RS\.?|INR|₹|\$)?\s*([\d,]+\.\d{2})/i, label: 'flex:patient-payable' },
+  { re: /payable\s*amount\s*[:\s]*(?:RS\.?|INR|₹|\$)?\s*([\d,]+\.\d{2})/i, label: 'flex:payable-amount' },
 ]
 
 const BILLED_FLEX = [
+  // US formats
   { re: /amount\s*billed\s*[:\s]*\$?([\d,]+\.\d{2})/i,         label: 'flex:amount-billed' },
   { re: /billed\s*amount\s*[:\s]*\$?([\d,]+\.\d{2})/i,         label: 'flex:billed-amount' },
   { re: /total\s*charges?\s*[:\s]*\$?([\d,]+\.\d{2})/i,        label: 'flex:total-charges' },
   { re: /total\s*billed\s*[:\s]*\$?([\d,]+\.\d{2})/i,          label: 'flex:total-billed' },
   { re: /submitted\s*amount\s*[:\s]*\$?([\d,]+\.\d{2})/i,      label: 'flex:submitted-amount' },
+  // Indian / international formats
+  { re: /grand\s*total\s*[:\s]*(?:RS\.?|INR|₹|\$)?\s*([\d,]+\.\d{2})/i,    label: 'flex:grand-total' },
+  { re: /net\s*amount\s*[:\s]*(?:RS\.?|INR|₹|\$)?\s*([\d,]+\.\d{2})/i,     label: 'flex:net-amount' },
+  { re: /total\s*amount\s*[:\s]*(?:RS\.?|INR|₹|\$)?\s*([\d,]+\.\d{2})/i,   label: 'flex:total-amount' },
+  { re: /total\s*bill\s*[:\s]*(?:RS\.?|INR|₹|\$)?\s*([\d,]+\.\d{2})/i,     label: 'flex:total-bill' },
+  { re: /bill\s*amount\s*[:\s]*(?:RS\.?|INR|₹|\$)?\s*([\d,]+\.\d{2})/i,    label: 'flex:bill-amount' },
 ]
 
 const INSURANCE_FLEX = [
@@ -125,6 +141,9 @@ const INSURANCE_FLEX = [
   { re: /insurance\s*paid\s*[:\s]*\$?([\d,]+\.\d{2})/i,        label: 'flex:insurance-paid' },
   { re: /insurance\s*payment\s*[:\s]*\$?([\d,]+\.\d{2})/i,     label: 'flex:insurance-payment' },
   { re: /benefit\s*paid\s*[:\s]*\$?([\d,]+\.\d{2})/i,          label: 'flex:benefit-paid' },
+  // Indian TPA / insurance reimbursement
+  { re: /tpa\s*(?:amount|paid|share)?\s*[:\s]*(?:RS\.?|INR|₹|\$)?\s*([\d,]+\.\d{2})/i, label: 'flex:tpa' },
+  { re: /insurance\s*cover(?:age)?\s*[:\s]*(?:RS\.?|INR|₹|\$)?\s*([\d,]+\.\d{2})/i,    label: 'flex:insurance-coverage' },
 ]
 
 function extractByFlexPatterns(text, patterns, minAmount = 1) {
@@ -143,6 +162,7 @@ function extractByFlexPatterns(text, patterns, minAmount = 1) {
 // ── STEP 2: You Owe labels ────────────────────────────────────────────────────
 
 const YOU_OWE_LABELS = [
+  // US formats
   'your share',
   'your responsibility',
   'patient responsibility',
@@ -158,6 +178,13 @@ const YOU_OWE_LABELS = [
   'member responsibility',
   'member amount owed',
   'coinsurance',
+  // Indian / international formats
+  'net payable',
+  'amount payable',
+  'patient payable',
+  'payable amount',
+  'net amount payable',
+  'total payable',
 ]
 
 export function extractYouOwe(text, docType) {
@@ -170,6 +197,7 @@ export function extractYouOwe(text, docType) {
 // ── STEP 3: Total Billed labels ───────────────────────────────────────────────
 
 const BILLED_LABELS = [
+  // US formats
   'amount billed',
   'total billed',
   'billed amount',
@@ -178,6 +206,13 @@ const BILLED_LABELS = [
   'submitted amount',
   'gross charges',
   'charges',
+  // Indian / international formats
+  'grand total',
+  'net amount',
+  'total amount',
+  'total bill',
+  'bill amount',
+  'total bill amount',
 ]
 
 export function extractTotalBilled(text) {
@@ -200,6 +235,55 @@ const INSURANCE_LABELS = [
 
 export function extractInsurancePaid(text) {
   return extractByLabels(text, INSURANCE_LABELS, 1)
+}
+
+// ── STEP 4b: Indian itemized bill column-sum strategy ────────────────────────
+// Detects a column header like "AMOUNT(RS.)" or "Amount (INR)" then sums all
+// line-item amounts below it, treating that sum as Total Billed.
+// Also looks for a "Grand Total" / "Net Payable" row as a cross-check.
+
+export function extractColumnSum(text) {
+  const lines = text.split('\n')
+
+  // Find a header line containing an amount column marker
+  const headerRe = /amount\s*[\(\[]?\s*(?:RS\.?|INR|₹|\$)\s*[\)\]]?/i
+  let headerIdx = -1
+  for (let i = 0; i < lines.length; i++) {
+    if (headerRe.test(lines[i])) { headerIdx = i; break }
+  }
+  if (headerIdx === -1) return null
+
+  // Collect amounts from lines after the header until a summary row or end
+  const stopRe = /grand\s*total|net\s*(?:amount|payable)|total\s*(?:amount|bill)|amount\s*payable/i
+  let sum = 0
+  let count = 0
+  let grandTotal = null
+
+  for (let i = headerIdx + 1; i < lines.length; i++) {
+    const line = lines[i]
+
+    // If this line looks like a summary/total row, grab it and stop
+    if (stopRe.test(line)) {
+      const m = line.match(/(?:RS\.?|INR|₹|\$)?\s*([\d,]+\.\d{2})/i)
+      if (m) grandTotal = parseFloat(m[1].replace(/,/g, ''))
+      break
+    }
+
+    // Extract the last currency amount on the line (rightmost column = item amount)
+    const allAmounts = [...line.matchAll(/(?:RS\.?|INR|₹|\$)?\s*([\d,]+\.\d{2})/gi)]
+    if (allAmounts.length > 0) {
+      const val = parseFloat(allAmounts[allAmounts.length - 1][1].replace(/,/g, ''))
+      if (!isNaN(val) && val > 0) { sum += val; count++ }
+    }
+  }
+
+  if (count === 0) return null
+
+  // Prefer the explicit grand total row if present; fall back to computed sum
+  const billed = grandTotal ?? (count >= 2 ? sum : null)
+  if (billed === null) return null
+
+  return { value: billed, confidence: count >= 2 ? 'high' : 'medium', matchedLabel: 'column-sum' }
 }
 
 // ── STEP 5: Multi-column totals row ──────────────────────────────────────────
@@ -316,6 +400,15 @@ export function extractAmounts(rawText) {
       if (!billedResult)    billedResult    = fb.billed
       if (!insuranceResult) insuranceResult = fb.insurance
       if (!oweResult)       oweResult       = fb.owe
+    }
+  }
+
+  // ── Pass E: Indian / international column-sum strategy ───────────────────
+  if (!billedResult) {
+    const cs = extractColumnSum(rawText) ?? extractColumnSum(normalized)
+    if (cs) {
+      billedResult = cs
+      console.log('Column-sum billed:', cs.value, `(${cs.matchedLabel})`)
     }
   }
 
