@@ -44,15 +44,15 @@ export default function Nav() {
             {/* AI active badge — shown on analyze page */}
             {isAnalyze && (
               <span
-                className="ai-pulse hidden md:flex items-center gap-1.5 text-xs font-semibold px-3 py-1 rounded-full mr-2"
+                className="hidden md:flex items-center gap-1.5 text-xs font-semibold px-3 py-1 rounded-full mr-2"
                 style={{
-                  background: 'rgba(34,211,238,0.1)',
-                  border: '1px solid rgba(34,211,238,0.35)',
-                  color: '#22D3EE',
+                  background: 'rgba(74,222,128,0.08)',
+                  border: '1px solid rgba(74,222,128,0.25)',
+                  color: '#4ade80',
                 }}
               >
-                <span className="w-1.5 h-1.5 rounded-full bg-cyan-400" />
-                AI AGENT ACTIVE
+                <span className="w-1.5 h-1.5 rounded-full bg-green-400" />
+                Free &amp; Private
               </span>
             )}
 
@@ -102,15 +102,15 @@ export default function Nav() {
         </NavLink>
         {isAnalyze && (
           <span
-            className="ai-pulse flex items-center gap-1.5 text-xs font-semibold px-2.5 py-1 rounded-full"
+            className="flex items-center gap-1.5 text-xs font-semibold px-2.5 py-1 rounded-full"
             style={{
-              background: 'rgba(34,211,238,0.1)',
-              border: '1px solid rgba(34,211,238,0.3)',
-              color: '#22D3EE',
+              background: 'rgba(74,222,128,0.08)',
+              border: '1px solid rgba(74,222,128,0.25)',
+              color: '#4ade80',
             }}
           >
-            <span className="w-1.5 h-1.5 rounded-full bg-cyan-400" />
-            AI ACTIVE
+            <span className="w-1.5 h-1.5 rounded-full bg-green-400" />
+            Free &amp; Private
           </span>
         )}
       </nav>
