@@ -38,9 +38,9 @@ export default function BillBreakdown({ bill, onUpdateTotals }) {
 
       {/* Stats */}
       <div className="card grid grid-cols-2 md:grid-cols-4 gap-4">
-        <EditableStat label="Total Billed" value={totals?.billed} field="billed" onSave={onUpdateTotals} />
-        <EditableStat label="Insurance Paid" value={totals?.covered} field="covered" onSave={onUpdateTotals} />
-        <EditableStat label="You Owe" value={totals?.patientOwes} field="patientOwes" onSave={onUpdateTotals} highlight />
+        <EditableStat label="Total Billed"   value={totals?.billed}       confidence={totals?.billedConfidence}       field="billed"       onSave={onUpdateTotals} />
+        <EditableStat label="Insurance Paid" value={totals?.covered}      confidence={totals?.coveredConfidence}      field="covered"      onSave={onUpdateTotals} />
+        <EditableStat label="You Owe"        value={totals?.patientOwes}  confidence={totals?.patientOwesConfidence}  field="patientOwes"  onSave={onUpdateTotals} highlight />
         <Stat label="Charges Flagged" value={`${totalFlagged} of ${lineItems.length}`} />
       </div>
 
@@ -137,16 +137,22 @@ export default function BillBreakdown({ bill, onUpdateTotals }) {
   )
 }
 
-// mode: 'show' | 'enter' | 'correct'
-// 'enter'   — value missing, input shown immediately (Feature 1)
-// 'show'    — value displayed + "Amount looks wrong?" link (Feature 3)
-// 'correct' — correction form: number input + insurer select + analytics submit
-function EditableStat({ label, value, field, onSave, highlight }) {
+/**
+ * EditableStat — displays a dollar amount extracted from the bill.
+ * Rendering varies by confidence level returned by amountExtractor:
+ *   high   → $X + ✎ edit link
+ *   medium → $X + ⚠ verify note
+ *   low    → "We think: $X — correct?" Yes/No
+ *   null   → manual entry input field (value not found)
+ */
+function EditableStat({ label, value, confidence, field, onSave, highlight }) {
+  // 'enter' = no value, show input; 'show' = display value; 'correct' = correction form
   const [mode, setMode] = useState(value == null ? 'enter' : 'show')
+  const [confirmed, setConfirmed] = useState(false)
   const [input, setInput] = useState('')
   const [insurer, setInsurer] = useState('')
 
-  // If value was externally filled (e.g. parser ran again), exit 'enter' mode
+  // If parser re-ran and now has a value, exit 'enter' mode automatically
   const effectiveMode = (mode === 'enter' && value != null) ? 'show' : mode
 
   function saveEntered() {
@@ -169,11 +175,14 @@ function EditableStat({ label, value, field, onSave, highlight }) {
 
   const inputClass = 'flex-1 min-w-0 rounded px-2 py-1 text-sm font-mono bg-slate-800 border text-white focus:outline-none'
 
+  // ── No value found → manual entry ─────────────────────────────────────────
   if (effectiveMode === 'enter') {
     return (
       <div>
         <p className="text-xs text-slate-500 uppercase tracking-wide">{label}</p>
-        <p className="text-xs mt-0.5 mb-1.5" style={{ color: '#f59e0b' }}>Not found — enter below</p>
+        <p className="text-xs mt-0.5 mb-1.5" style={{ color: '#f59e0b' }}>
+          Not found — enter below
+        </p>
         <div className="flex gap-1">
           <input
             type="text"
@@ -185,10 +194,14 @@ function EditableStat({ label, value, field, onSave, highlight }) {
           />
           <button onClick={saveEntered} className="text-xs px-2 py-1 rounded bg-violet-600 text-white font-semibold">✓</button>
         </div>
+        <p className="text-xs mt-1" style={{ color: '#5c7090' }}>
+          Look for "{label}" or "Amount Due" on your document.
+        </p>
       </div>
     )
   }
 
+  // ── Correction form ────────────────────────────────────────────────────────
   if (effectiveMode === 'correct') {
     return (
       <div>
@@ -200,7 +213,10 @@ function EditableStat({ label, value, field, onSave, highlight }) {
             type="text"
             value={input}
             onChange={e => setInput(e.target.value)}
-            onKeyDown={e => { if (e.key === 'Enter') saveCorrection(); if (e.key === 'Escape') setMode('show') }}
+            onKeyDown={e => {
+              if (e.key === 'Enter') saveCorrection()
+              if (e.key === 'Escape') setMode('show')
+            }}
             placeholder="e.g. 13255.04"
             className={`${inputClass} border-violet-400`}
           />
@@ -221,7 +237,61 @@ function EditableStat({ label, value, field, onSave, highlight }) {
     )
   }
 
-  // mode === 'show'
+  // ── Low confidence → "We think $X — correct?" ─────────────────────────────
+  if (confidence === 'low' && !confirmed) {
+    return (
+      <div>
+        <p className="text-xs text-slate-500 uppercase tracking-wide">{label}</p>
+        <p className={`text-xl font-bold mt-0.5 ${highlight ? 'text-violet-700' : 'text-slate-800'}`}>
+          ${value.toLocaleString()}
+        </p>
+        <p className="text-xs mt-0.5 mb-1.5" style={{ color: '#f59e0b' }}>We think this is right — confirm?</p>
+        <div className="flex gap-1">
+          <button
+            onClick={() => setConfirmed(true)}
+            className="flex-1 text-xs py-1 rounded bg-green-600 text-white font-semibold"
+          >
+            ✓ Yes
+          </button>
+          <button
+            onClick={() => { setMode('correct'); setInput(String(value)) }}
+            className="flex-1 text-xs py-1 rounded bg-slate-700 text-slate-300 font-semibold"
+          >
+            Fix it
+          </button>
+        </div>
+      </div>
+    )
+  }
+
+  // ── Medium confidence → amount + ⚠ verify note ────────────────────────────
+  if (confidence === 'medium' && !confirmed) {
+    return (
+      <div>
+        <p className="text-xs text-slate-500 uppercase tracking-wide">{label}</p>
+        <div className="flex items-end gap-1 mt-0.5">
+          <p className={`text-xl font-bold ${highlight ? 'text-violet-700' : 'text-slate-800'}`}>
+            ${value.toLocaleString()}
+          </p>
+          <button
+            onClick={() => { setMode('correct'); setInput(String(value)) }}
+            className="text-xs mb-0.5 text-slate-400 hover:text-slate-600"
+          >
+            ✎
+          </button>
+        </div>
+        <button
+          onClick={() => { setMode('correct'); setInput(String(value)) }}
+          className="text-xs mt-0.5 hover:underline flex items-center gap-1"
+          style={{ color: '#f59e0b' }}
+        >
+          ⚠ verify this
+        </button>
+      </div>
+    )
+  }
+
+  // ── High confidence (or confirmed) → clean display ────────────────────────
   return (
     <div>
       <p className="text-xs text-slate-500 uppercase tracking-wide">{label}</p>
@@ -229,8 +299,12 @@ function EditableStat({ label, value, field, onSave, highlight }) {
         <p className={`text-xl font-bold ${highlight ? 'text-violet-700' : 'text-slate-800'}`}>
           ${value.toLocaleString()}
         </p>
-        <button onClick={() => { setMode('correct'); setInput(String(value)) }}
-          className="text-xs mb-0.5 text-slate-400 hover:text-slate-600">edit</button>
+        <button
+          onClick={() => { setMode('correct'); setInput(String(value)) }}
+          className="text-xs mb-0.5 text-slate-400 hover:text-slate-600"
+        >
+          ✎
+        </button>
       </div>
       <button
         onClick={() => { setMode('correct'); setInput(String(value)) }}
