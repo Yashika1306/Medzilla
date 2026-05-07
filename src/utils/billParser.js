@@ -72,34 +72,55 @@ function extractDateOfService(text) {
 }
 
 function extractTotals(text) {
-  const billed = extractAmount(text, /(?:total charges?|amount billed|gross charges?|member rate)[:\s]*\$?([\d,]+(?:\.\d{2})?)/i)
-  const covered =
-    extractAmount(text, /(?:insurance paid|plan paid|amount paid by (?:insurance|plan)|plan.s share|plan paid)[:\s]*\$?([\d,]+(?:\.\d{2})?)/i) ??
-    extractAmount(text, /(?:plan(?:'s)?\s+share)[^\n]{0,40}([\d,]+\.\d{2})/i)
+  const billed =
+    extractAmountInline(text, /(?:total\s+charges?|amount\s+billed|charged\s+amount|billed\s+amount|gross\s+charges?|submitted\s+charges?|provider\s+charges?|amount\s+charged|full\s+charges?)[\s:]*\$?([\d,]+(?:\.\d{2})?)/i) ??
+    extractAmountNextLine(text, /(?:total\s+charges?|amount\s+billed|charged\s+amount|billed\s+amount|gross\s+charges?|submitted\s+charges?)/) ??
+    extractAmountInline(text, /(?:member\s+rate|contracted\s+rate|allowed\s+amount|negotiated\s+(?:rate|amount))[\s:]*\$?([\d,]+(?:\.\d{2})?)/i)
 
-  // Multiple patterns for patient amount — EOBs use "Your share", "member responsibility", etc.
+  const covered =
+    extractAmountInline(text, /(?:insurance\s+paid|plan\s+paid|plan\s+payment|benefit\s+paid|amount\s+paid(?:\s+by\s+(?:insurance|plan|health\s+plan))?|health\s+plan\s+paid|we\s+paid|aetna\s+paid|cigna\s+paid|bcbs\s+paid|united\s+paid|humana\s+paid)[\s:]*\$?([\d,]+(?:\.\d{2})?)/i) ??
+    extractAmountNextLine(text, /(?:insurance\s+paid|plan\s+paid|plan\s+payment|benefit\s+paid|amount\s+paid|health\s+plan\s+paid|we\s+paid)/) ??
+    extractAmountInline(text, /(?:plan(?:'s)?\s+share|insurance(?:'s)?\s+share)[\s:]*\$?([\d,]+(?:\.\d{2})?)/i) ??
+    extractAmountNextLine(text, /(?:plan(?:'s)?\s+share|insurance(?:'s)?\s+share)/)
+
   const patientOwes =
-    extractAmount(text, /(?:patient (?:responsibility|balance|owes?|amount due)|amount due|balance due|total due|you owe|member responsibility)[:\s]*\$?([\d,]+(?:\.\d{2})?)/i) ??
-    extractAmount(text, /total\s+(?:member|patient|your)\s+(?:responsibility|share|balance)[^\n]{0,30}([\d,]+\.\d{2})/i) ??
-    extractAmount(text, /(?:your\s+total\s+(?:share|responsibility)|total\s+you\s+owe)[^\n]{0,30}([\d,]+\.\d{2})/i) ??
-    extractAmount(text, /your\s+(?:share|coinsurance)[^\n]{0,30}\$\s*([\d,]+(?:\.\d{2}))/i) ??
+    extractAmountInline(text, /(?:patient\s+(?:responsibility|balance|owes?|amount\s+due|share|cost)|member\s+(?:responsibility|share|cost|owes?)|your\s+(?:responsibility|share|total\s+responsibility|cost\s+share|amount\s+due|balance)|amount\s+(?:you\s+owe|due\s+from\s+(?:you|member|patient))|(?:total\s+)?balance\s+due|total\s+due|amount\s+due|you\s+owe|what\s+you\s+owe|(?:total\s+)?(?:deductible|copay|coinsurance)\s+(?:and\s+(?:copay|coinsurance)\s+)?(?:total|amount))[\s:]*\$?([\d,]+(?:\.\d{2})?)/i) ??
+    extractAmountNextLine(text, /(?:patient\s+responsibility|member\s+responsibility|your\s+(?:responsibility|share|total|amount\s+due)|balance\s+due|total\s+due|amount\s+due|you\s+owe|what\s+you\s+owe)/) ??
+    extractAmountInline(text, /total\s+(?:member|patient|your)\s+(?:responsibility|share|balance)[\s:]*\$?([\d,]+(?:\.\d{2})?)/i) ??
     extractAmountEOBSummary(text)
 
   return { billed, covered, patientOwes }
 }
 
-// For EOBs only: scan the last 800 chars of the document for a standalone total amount
-// Only applies when EOB markers are present (prevents false positives on regular bills)
+// Match label and amount on the same line
+function extractAmountInline(text, regex) {
+  const m = text.match(regex)
+  if (!m) return null
+  return parseFloat(m[1].replace(/,/g, ''))
+}
+
+// Match label on one line, then find first dollar amount within next 3 lines
+function extractAmountNextLine(text, labelRegex) {
+  const lines = text.split('\n')
+  for (let i = 0; i < lines.length; i++) {
+    if (!labelRegex.test(lines[i])) continue
+    for (let j = i; j <= Math.min(i + 3, lines.length - 1); j++) {
+      const m = lines[j].match(/\$?\s*([\d,]+\.\d{2})/)
+      if (m) return parseFloat(m[1].replace(/,/g, ''))
+    }
+  }
+  return null
+}
+
+// For EOBs: scan the last 1200 chars for a summary total (last-resort fallback)
 function extractAmountEOBSummary(text) {
   const upper = text.toUpperCase()
   const isEOB = upper.includes('EXPLANATION OF BENEFITS') || upper.includes('THIS IS NOT A BILL') || upper.includes('EOB')
   if (!isEOB) return null
-  // Look at the tail of the document where totals usually appear
-  const tail = text.slice(-800)
+  const tail = text.slice(-1200)
   const matches = [...tail.matchAll(/(?<!\d)([\d,]{1,7}\.\d{2})(?!\d)/g)]
     .map(m => parseFloat(m[1].replace(/,/g, '')))
-    .filter(n => n > 10 && n < 15000) // plausible patient responsibility range
-  // Return last candidate (totals appear at end of EOB)
+    .filter(n => n > 10 && n < 15000)
   return matches.length ? matches[matches.length - 1] : null
 }
 
