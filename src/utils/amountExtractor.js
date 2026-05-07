@@ -111,7 +111,9 @@ export function extractYouOwe(text, docType) {
   const labels = docType === 'eob'
     ? YOU_OWE_LABELS
     : YOU_OWE_LABELS.filter(l => l !== 'coinsurance')
-  return extractByLabels(text, labels, 0)
+  // minAmount=1 prevents noise like $0.04 from individual EOB service rows
+  // from being mistaken for the patient balance
+  return extractByLabels(text, labels, 1)
 }
 
 // ── STEP 3: Total Billed labels ───────────────────────────────────────────────
