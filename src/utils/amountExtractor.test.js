@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { extractAmounts, detectDocumentType, extractColumnSum } from './amountExtractor.js'
+import { extractAmounts, detectDocumentType, extractColumnSum, extractFromFlatText } from './amountExtractor.js'
 
 // ── TEST 1: Aetna EOB ─────────────────────────────────────────────────────────
 describe('TEST 1 — Aetna EOB', () => {
@@ -185,6 +185,45 @@ Amount Payable: ₹5,500.00
   it('extracts owe with ₹ symbol', () => {
     const r = extractAmounts(text)
     expect(r.owe).toBe(5500.00)
+  })
+})
+
+// ── TEST 8: Aetna EOB — flat text (pdf.js single-line output) ────────────────
+describe('TEST 8 — Aetna EOB flat text (no line breaks)', () => {
+  // Simulates what pdf.js produces when it joins all text items with spaces.
+  // The 9 column values appear as a tight cluster after the column headers.
+  const text = 'Track your health care costs Your payment summary Amount billed Member rate Not payable by plan Applied to deductible Your copay Amount remaining Plan\'s share Your coinsurance Your share C+D+E+H=I Service type Emergency 13,255.04 9,522.97 3,703.57 0.00 0.00 0.00 5,193.52 329.97 1,538.55 Your next steps'
+
+  it('extractFromFlatText detects the 9-column cluster', () => {
+    const r = extractFromFlatText(text)
+    expect(r?.billed?.value).toBe(13255.04)
+    expect(r?.insurance?.value).toBe(5193.52)
+    expect(r?.owe?.value).toBe(1538.55)
+  })
+
+  it('extractAmounts returns correct values from flat text', () => {
+    const r = extractAmounts(text)
+    expect(r.billed).toBe(13255.04)
+    expect(r.insurance).toBe(5193.52)
+    expect(r.owe).toBe(1538.55)
+  })
+})
+
+// ── TEST 9: Lenox Hill — Visit Totals row ─────────────────────────────────────
+describe('TEST 9 — Lenox Hill Visit Totals row', () => {
+  const text = 'Jersey City Medical Center Patient Statement Visit Totals $4,356.28 -$3,485.02 $0.00 $871.26 Please pay balance due'
+
+  it('extractFromFlatText parses Visit Totals', () => {
+    const r = extractFromFlatText(text)
+    expect(r?.billed?.value).toBe(4356.28)
+    expect(r?.insurance?.value).toBe(3485.02)
+    expect(r?.owe?.value).toBe(871.26)
+  })
+
+  it('extractAmounts returns correct values for Visit Totals format', () => {
+    const r = extractAmounts(text)
+    expect(r.billed).toBe(4356.28)
+    expect(r.owe).toBe(871.26)
   })
 })
 

@@ -102,8 +102,6 @@ function extractByLabels(text, labels, minAmount = 0) {
 // These patterns use \s* between words and [:\s]* between label and value,
 // handling both "Amount billed: $13,255.04" and "Amountbilled$13255.04".
 
-const CURRENCY = /(?:RS\.?|INR|₹|\$)?/i  // used inline in template literals below
-
 const OWE_FLEX = [
   // US formats
   { re: /your\s*share\s*[:\s]*\$?([\d,]+\.\d{2})/i,           label: 'flex:your-share' },
@@ -318,6 +316,117 @@ function totalsRowFallback(text, docType) {
   return null
 }
 
+// ── STEP 6: Flat-text extraction ─────────────────────────────────────────────
+// pdf.js sometimes emits all text as a single long line with no newlines.
+// Label-based extraction (150-char window, line-start requirement) silently fails.
+// Strategy: extract all amounts with positions, match by proximity and context.
+
+function isFlatText(text) {
+  const newlines = (text.match(/\n/g) || []).length
+  // Zero newlines → definitely a single-line concatenated string
+  if (newlines === 0) return true
+  const nonEmpty = text.split('\n').filter(l => l.trim().length > 0)
+  // Has newlines but average line is very long → mostly flat
+  return (text.replace(/\n/g, '').length / nonEmpty.length) > 400
+}
+
+export function extractFromFlatText(text) {
+  // Collect every dollar-like amount with its character position
+  const allAmounts = []
+  const amountRe = /(?:RS\.?|INR|₹|\$)?\s*([\d]{1,3}(?:,[\d]{3})*\.[\d]{2})/gi
+  let m
+  while ((m = amountRe.exec(text)) !== null) {
+    const val = parseFloat(m[1].replace(/,/g, ''))
+    if (!isNaN(val)) allAmounts.push({ value: val, index: m.index })
+  }
+  if (allAmounts.length === 0) return null
+
+  const t = text.toLowerCase()
+
+  // ── Strategy 1: find 7-9 consecutive amounts within 1000 chars ─────────────
+  // In Aetna flat EOB the 9 column values appear back-to-back after headers.
+  // Individual service rows are scattered; only the totals cluster this tightly.
+  for (let i = 0; i <= allAmounts.length - 7; i++) {
+    const win = allAmounts.slice(i, i + 9)
+    const span = win[win.length - 1].index - win[0].index
+    if (span > 1000) continue          // not tight enough — different rows
+    if (win[0].value <= 100) continue  // guard: skip rows like all-$0.04
+    const ins = win[win.length - 3]
+    const owe = win[win.length - 1]
+    // Sanity: billed > insurance and billed > owe
+    if (ins && owe && win[0].value > owe.value && win[0].value > ins.value) {
+      return {
+        billed:    { value: win[0].value, confidence: 'high', matchedLabel: 'flat:seq[0]' },
+        insurance: { value: ins.value,    confidence: 'high', matchedLabel: 'flat:seq[-3]' },
+        owe:       { value: owe.value,    confidence: 'high', matchedLabel: 'flat:seq[-1]' },
+      }
+    }
+  }
+
+  // ── Strategy 2: Visit Totals row (e.g. Lenox Hill) ─────────────────────────
+  // "Visit Totals $4,356.28 -$3,485.02 $0.00 $871.26"
+  const vtM = text.match(/visit\s+totals?\s+\$?([\d,]+\.\d{2})([\s\S]{0,300})/i)
+  if (vtM) {
+    const billedVal = parseFloat(vtM[1].replace(/,/g, ''))
+    const seg = vtM[2]
+    const negM  = seg.match(/-\$?([\d,]+\.\d{2})/)
+    const posAll = [...seg.matchAll(/(?<![-\d])\$?([\d,]+\.\d{2})/g)]
+      .map(a => parseFloat(a[1].replace(/,/g, '')))
+      .filter(v => v > 0)
+    if (billedVal > 0) {
+      return {
+        billed:    { value: billedVal,                                       confidence: 'high', matchedLabel: 'flat:visit-totals' },
+        insurance: negM ? { value: parseFloat(negM[1].replace(/,/g, '')),   confidence: 'high', matchedLabel: 'flat:visit-totals-discount' } : null,
+        owe:       posAll.length ? { value: posAll[posAll.length - 1],      confidence: 'high', matchedLabel: 'flat:visit-totals-last' } : null,
+      }
+    }
+  }
+
+  // ── Strategy 3: wide-window label matching ──────────────────────────────────
+  // Use the LAST occurrence of each label (most likely to be the totals/summary row).
+  function firstAmountAfterLast(label, minVal = 1) {
+    const idx = t.lastIndexOf(label)
+    if (idx === -1) return null
+    return allAmounts.find(a => a.index > idx && a.value >= minVal) ?? null
+  }
+
+  let billed = null, insurance = null, owe = null
+
+  // Total Billed — use largest amount after the label (the total, not a line item)
+  const billedLabelIdx = t.indexOf('amount billed')
+  if (billedLabelIdx !== -1) {
+    const after = allAmounts.filter(a => a.index > billedLabelIdx && a.value > 100)
+    if (after.length > 0) {
+      const largest = after.reduce((mx, a) => a.value > mx.value ? a : mx)
+      billed = { value: largest.value, confidence: 'medium', matchedLabel: 'flat:amount-billed' }
+    }
+  }
+
+  const oweLabels = ["your share", "net payable", "amount payable", "you owe", "balance due", "patient responsibility", "amount due"]
+  for (const label of oweLabels) {
+    const a = firstAmountAfterLast(label)
+    if (a) { owe = { value: a.value, confidence: 'medium', matchedLabel: `flat:${label}` }; break }
+  }
+
+  const insLabels = ["plan's share", "plan paid", "insurance paid", "insurance payment", "tpa amount"]
+  for (const label of insLabels) {
+    const a = firstAmountAfterLast(label)
+    if (a) { insurance = { value: a.value, confidence: 'medium', matchedLabel: `flat:${label}` }; break }
+  }
+
+  // ── Strategy 4: infer insurance from billed − owe ──────────────────────────
+  if (billed && owe && !insurance) {
+    const implied = billed.value - owe.value
+    if (implied > 0) {
+      const candidate = allAmounts.find(a => Math.abs(a.value - implied) / billed.value < 0.05)
+      if (candidate) insurance = { value: candidate.value, confidence: 'low', matchedLabel: 'flat:implied' }
+    }
+  }
+
+  if (!billed && !owe) return null
+  return { billed, insurance, owe }
+}
+
 // ── STEP 7: Sanity check ──────────────────────────────────────────────────────
 
 function sanityCheck(billed, insurance, owe, docType) {
@@ -351,6 +460,20 @@ export function extractAmounts(rawText) {
   let billedResult    = null
   let insuranceResult = null
   let oweResult       = null
+
+  // ── Pass 0: flat-text extraction (pdf.js single-line output) ───────────
+  const flat = isFlatText(rawText) || isFlatText(normalized)
+  if (flat) {
+    const ft = extractFromFlatText(rawText) ?? extractFromFlatText(normalized)
+    if (ft) {
+      billedResult    = ft.billed    ?? null
+      insuranceResult = ft.insurance ?? null
+      oweResult       = ft.owe       ?? null
+      console.log('Flat-text hit:', { billed: billedResult?.value, insurance: insuranceResult?.value, owe: oweResult?.value })
+    } else {
+      console.log('Flat-text: no match')
+    }
+  }
 
   // ── Pass A: multi-column totals row (EOB primary) ───────────────────────
   if (docType === 'eob') {
