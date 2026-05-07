@@ -35,7 +35,7 @@ export default function Nav() {
               Medzilla
             </span>
             <span className="hidden md:inline text-xs font-normal" style={{ color: '#445878' }}>
-              — fight your medical bill
+              — know before you pay
             </span>
           </NavLink>
 
