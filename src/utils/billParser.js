@@ -72,53 +72,75 @@ function extractDateOfService(text) {
 }
 
 function extractTotals(text) {
-  // Total Billed — use FIRST amount after the label, not last.
-  // In Aetna's claims table the row can be: "Amount billed Member rate ... 13,255.04 14,614.00 ... 1,538.55"
-  // Taking the last amount wrongly returns 1,538.55. First amount after label = 13,255.04.
+  // Primary: Aetna claims totals row has all 9 column values on one line.
+  // e.g. "13,255.04  14,614.00  11,512.04  0.00  0.00  10,257.00  8,718.45  1,538.55  $1,538.55"
+  // Column order: A=billed, B=member rate, C=not payable, D=deductible, E=copay,
+  //               F=amount remaining, G=plan's share, H=coinsurance, I=your share
+  const claimsRow = extractFromClaimsTotalsRow(text)
+
   const billed =
-    extractAmountAfterLabel(text, /amount\s+billed/i) ??
-    extractAmountAfterLabel(text, /total\s+charges?/i) ??
-    extractAmountAfterLabel(text, /gross\s+charges?/i) ??
+    claimsRow?.billed ??
+    extractAmountAfterLabel(text, /amount\s+billed/i, 10) ??
+    extractAmountAfterLabel(text, /total\s+charges?/i, 10) ??
+    extractAmountAfterLabel(text, /gross\s+charges?/i, 10) ??
     extractAmountNextLine(text, /amount\s+billed|total\s+charges?/)
 
-  // Insurance Paid — Aetna payment summary "Total:" row: first $ = plan's share ($5,193.52)
   const covered =
     extractPlanShareFromSummary(text) ??
-    extractAmountAfterLabel(text, /insurance\s+paid/i) ??
-    extractAmountAfterLabel(text, /plan\s+paid/i) ??
-    extractAmountAfterLabel(text, /benefit\s+paid/i) ??
-    extractAmountNextLine(text, /insurance\s+paid|plan\s+paid|benefit\s+paid/)
+    claimsRow?.covered ??
+    extractAmountAfterLabel(text, /insurance\s+paid/i, 1) ??
+    extractAmountAfterLabel(text, /plan\s+paid/i, 1) ??
+    extractAmountNextLine(text, /insurance\s+paid|plan\s+paid/)
 
-  // You Owe — Aetna: "Coinsurance: [description] $1,538.55"
   const patientOwes =
-    extractAmountAfterLabel(text, /^coinsurance[:\s]/im) ??
-    extractAmountAfterLabel(text, /your\s+share[:\s]/i) ??
-    extractAmountAfterLabel(text, /patient\s+responsibility/i) ??
-    extractAmountAfterLabel(text, /member\s+responsibility/i) ??
-    extractAmountAfterLabel(text, /(?:balance|amount)\s+due/i) ??
-    extractAmountAfterLabel(text, /you\s+owe/i) ??
-    extractAmountNextLine(text, /patient\s+responsibility|member\s+responsibility|balance\s+due|you\s+owe/) ??
+    extractAmountAfterLabel(text, /^coinsurance[:\s]/im, 1) ??
+    claimsRow?.patientOwes ??
+    extractAmountAfterLabel(text, /your\s+share[:\s]/i, 1) ??
+    extractAmountAfterLabel(text, /patient\s+responsibility/i, 1) ??
+    extractAmountAfterLabel(text, /member\s+responsibility/i, 1) ??
+    extractAmountAfterLabel(text, /(?:balance|amount)\s+due/i, 1) ??
+    extractAmountNextLine(text, /patient\s+responsibility|member\s+responsibility|balance\s+due/) ??
     extractAmountEOBSummary(text)
 
   return { billed, covered, patientOwes }
 }
 
-// Find a line matching labelRegex, return the FIRST dollar amount that appears
-// AFTER the matched label text on that line (handles both inline and merged-table rows).
-function extractAmountAfterLabel(text, labelRegex) {
+// Aetna EOB: find a line with 7+ dollar amounts — that's the claims table totals row.
+// Returns { billed, covered, patientOwes } extracted by column position.
+function extractFromClaimsTotalsRow(text) {
+  const lines = text.split('\n')
+  for (const line of lines) {
+    const nums = [...line.matchAll(/\$?([\d,]+\.\d{2})/g)].map(m => parseFloat(m[1].replace(/,/g, '')))
+    if (nums.length >= 7 && nums[0] > 100) {
+      return {
+        billed: nums[0],                      // Column A: Amount billed
+        covered: nums[nums.length - 3],       // Column G: Plan's share
+        patientOwes: nums[nums.length - 1]    // Column I: Your share
+      }
+    }
+  }
+  return null
+}
+
+// Find a line matching labelRegex, return the first dollar amount AFTER the label.
+// minAmount filters out noise (e.g. $0.04 line items when we want the $13k total).
+function extractAmountAfterLabel(text, labelRegex, minAmount = 0) {
   const lines = text.split('\n')
   for (const line of lines) {
     const match = labelRegex.exec(line)
     if (!match) continue
     const afterLabel = line.slice(match.index + match[0].length)
     const m = afterLabel.match(/\$?([\d,]+\.\d{2})/)
-    if (m) return parseFloat(m[1].replace(/,/g, ''))
+    if (m) {
+      const val = parseFloat(m[1].replace(/,/g, ''))
+      if (val >= minAmount) return val
+    }
   }
   return null
 }
 
-// Aetna payment summary: find "Plan's share" header, then look ahead for a "Total" row
-// and return its first dollar amount (= plan's share paid to provider)
+// Aetna payment summary: "Plan's share" header then look ahead for "Total" row.
+// First dollar amount in that row = plan's amount paid to provider.
 function extractPlanShareFromSummary(text) {
   const lines = text.split('\n')
   for (let i = 0; i < lines.length; i++) {
