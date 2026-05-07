@@ -7,6 +7,7 @@ import BillBreakdown from '../components/BillBreakdown'
 import ChatInterface from '../components/ChatInterface'
 import InsuranceExplainer from '../components/InsuranceExplainer'
 import LegalVerifier from '../components/LegalVerifier'
+import BillHelp from '../components/BillHelp'
 
 const TABS = ['Charges', 'Legal Review', 'Chat', 'Insurance Terms']
 
@@ -49,6 +50,9 @@ export default function Analyze() {
             </p>
           </div>
           <BillUploader onBillParsed={handleBillParsed} />
+          <div className="mt-4">
+            <BillHelp />
+          </div>
         </main>
       </div>
     )
@@ -127,6 +131,9 @@ export default function Analyze() {
                 </div>
               )}
             </div>
+
+            {/* Always-visible help panel */}
+            <BillHelp />
           </div>
 
           {/* ── Right: tabs + content ── */}
