@@ -72,31 +72,62 @@ function extractDateOfService(text) {
 }
 
 function extractTotals(text) {
+  // Total Billed — Aetna: "Amount billed: [description] $13,255.04" (amount at end of line)
   const billed =
-    extractAmountInline(text, /(?:total\s+charges?|amount\s+billed|charged\s+amount|billed\s+amount|gross\s+charges?|submitted\s+charges?|provider\s+charges?|amount\s+charged|full\s+charges?)[\s:]*\$?([\d,]+(?:\.\d{2})?)/i) ??
-    extractAmountNextLine(text, /(?:total\s+charges?|amount\s+billed|charged\s+amount|billed\s+amount|gross\s+charges?|submitted\s+charges?)/) ??
-    extractAmountInline(text, /(?:member\s+rate|contracted\s+rate|allowed\s+amount|negotiated\s+(?:rate|amount))[\s:]*\$?([\d,]+(?:\.\d{2})?)/i)
+    extractAmountLastOnLine(text, /amount\s+billed/i) ??
+    extractAmountLastOnLine(text, /total\s+charges?/i) ??
+    extractAmountLastOnLine(text, /(?:gross|billed|charged|submitted|provider)\s+(?:charges?|amount)/i) ??
+    extractAmountNextLine(text, /amount\s+billed|total\s+charges?/)
 
+  // Insurance Paid — Aetna payment summary: "Total: $5,193.52 $1,538.55" (first = plan's share)
+  // Also handles "Plan's share", "Plan paid", "Insurance paid" labels
   const covered =
-    extractAmountInline(text, /(?:insurance\s+paid|plan\s+paid|plan\s+payment|benefit\s+paid|amount\s+paid(?:\s+by\s+(?:insurance|plan|health\s+plan))?|health\s+plan\s+paid|we\s+paid|aetna\s+paid|cigna\s+paid|bcbs\s+paid|united\s+paid|humana\s+paid)[\s:]*\$?([\d,]+(?:\.\d{2})?)/i) ??
-    extractAmountNextLine(text, /(?:insurance\s+paid|plan\s+paid|plan\s+payment|benefit\s+paid|amount\s+paid|health\s+plan\s+paid|we\s+paid)/) ??
-    extractAmountInline(text, /(?:plan(?:'s)?\s+share|insurance(?:'s)?\s+share)[\s:]*\$?([\d,]+(?:\.\d{2})?)/i) ??
-    extractAmountNextLine(text, /(?:plan(?:'s)?\s+share|insurance(?:'s)?\s+share)/)
+    extractPlanShareFromSummary(text) ??
+    extractAmountLastOnLine(text, /insurance\s+paid/i) ??
+    extractAmountLastOnLine(text, /plan\s+paid/i) ??
+    extractAmountLastOnLine(text, /benefit\s+paid/i) ??
+    extractAmountNextLine(text, /insurance\s+paid|plan\s+paid|benefit\s+paid/)
 
+  // You Owe — Aetna: "Coinsurance: [description] $1,538.55" or "Your share" in payment summary
   const patientOwes =
-    extractAmountInline(text, /(?:patient\s+(?:responsibility|balance|owes?|amount\s+due|share|cost)|member\s+(?:responsibility|share|cost|owes?)|your\s+(?:responsibility|share|total\s+responsibility|cost\s+share|amount\s+due|balance)|amount\s+(?:you\s+owe|due\s+from\s+(?:you|member|patient))|(?:total\s+)?balance\s+due|total\s+due|amount\s+due|you\s+owe|what\s+you\s+owe|(?:total\s+)?(?:deductible|copay|coinsurance)\s+(?:and\s+(?:copay|coinsurance)\s+)?(?:total|amount))[\s:]*\$?([\d,]+(?:\.\d{2})?)/i) ??
-    extractAmountNextLine(text, /(?:patient\s+responsibility|member\s+responsibility|your\s+(?:responsibility|share|total|amount\s+due)|balance\s+due|total\s+due|amount\s+due|you\s+owe|what\s+you\s+owe)/) ??
-    extractAmountInline(text, /total\s+(?:member|patient|your)\s+(?:responsibility|share|balance)[\s:]*\$?([\d,]+(?:\.\d{2})?)/i) ??
+    extractAmountLastOnLine(text, /^coinsurance[:\s]/im) ??
+    extractAmountLastOnLine(text, /your\s+share[:\s]/i) ??
+    extractAmountLastOnLine(text, /patient\s+responsibility/i) ??
+    extractAmountLastOnLine(text, /member\s+responsibility/i) ??
+    extractAmountLastOnLine(text, /(?:balance|amount)\s+due/i) ??
+    extractAmountLastOnLine(text, /you\s+owe/i) ??
+    extractAmountNextLine(text, /patient\s+responsibility|member\s+responsibility|balance\s+due|you\s+owe/) ??
     extractAmountEOBSummary(text)
 
   return { billed, covered, patientOwes }
 }
 
-// Match label and amount on the same line
-function extractAmountInline(text, regex) {
-  const m = text.match(regex)
-  if (!m) return null
-  return parseFloat(m[1].replace(/,/g, ''))
+// Find a line matching labelRegex, return the LAST dollar amount on that line.
+// Handles Aetna-style: "Amount billed: [long description] $13,255.04"
+function extractAmountLastOnLine(text, labelRegex) {
+  const lines = text.split('\n')
+  for (const line of lines) {
+    if (!labelRegex.test(line)) continue
+    const matches = [...line.matchAll(/\$?([\d,]+\.\d{2})/g)]
+    if (matches.length) return parseFloat(matches[matches.length - 1][1].replace(/,/g, ''))
+  }
+  return null
+}
+
+// Aetna payment summary: find "Plan's share" column header, then find the "Total:" row
+// below it and return its first dollar amount (= plan's share total)
+function extractPlanShareFromSummary(text) {
+  const lines = text.split('\n')
+  for (let i = 0; i < lines.length; i++) {
+    if (!/plan.s\s+share/i.test(lines[i])) continue
+    for (let j = i + 1; j <= Math.min(i + 15, lines.length - 1); j++) {
+      if (/^\s*total[:\s]/i.test(lines[j])) {
+        const m = lines[j].match(/\$?([\d,]+\.\d{2})/)
+        if (m) return parseFloat(m[1].replace(/,/g, ''))
+      }
+    }
+  }
+  return null
 }
 
 // Match label on one line, then find first dollar amount within next 3 lines
