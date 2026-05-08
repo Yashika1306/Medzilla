@@ -5,14 +5,12 @@ import { decodeLineItems } from '../utils/codeDecoder'
 import { flagLineItems, computeFlagSummary } from '../utils/chargeFlagger'
 import { determineSurvivalPaths } from '../utils/survivalPaths'
 import { COPY } from '../constants/copy'
-import ManualBillEntry from './ManualBillEntry'
 
 export default function BillUploader({ onBillParsed }) {
   const [status, setStatus] = useState('idle') // idle | loading | ocr | done
   const [ocrProgress, setOcrProgress] = useState(null) // { status, progress }
   const [error, setError] = useState(null)
   const [dragging, setDragging] = useState(false)
-  const [showManual, setShowManual] = useState(false)
   const [showHelp, setShowHelp] = useState(false)
   const inputRef = useRef()
 
@@ -23,7 +21,6 @@ export default function BillUploader({ onBillParsed }) {
     }
     setStatus('loading')
     setError(null)
-    setShowManual(false)
     setOcrProgress(null)
 
     try {
@@ -42,21 +39,11 @@ export default function BillUploader({ onBillParsed }) {
       if (!rawText || rawText.length < 50) {
         setError(COPY.uploadError)
         setStatus('idle')
-        setShowManual(true)
         setOcrProgress(null)
         return
       }
 
       const parsed = parseBill(rawText)
-
-      if (!parsed.lineItems.length) {
-        setError(COPY.noChargesFound)
-        setStatus('idle')
-        setShowManual(true)
-        setOcrProgress(null)
-        return
-      }
-
       const decoded = await decodeLineItems(parsed.lineItems)
       const { flaggedItems, unbundlingWarnings } = await flagLineItems(decoded)
       const flagSummary = computeFlagSummary(flaggedItems)
@@ -73,7 +60,6 @@ export default function BillUploader({ onBillParsed }) {
       setError('Something went wrong reading this file. ' + (err.message ?? ''))
       setStatus('idle')
       setOcrProgress(null)
-      setShowManual(true)
     }
   }
 
@@ -163,39 +149,9 @@ export default function BillUploader({ onBillParsed }) {
       )}
 
       {error && (
-        <div className="rounded-lg p-4 text-sm space-y-2" style={{ backgroundColor: '#1a1206', border: '1px solid #4a3010', color: '#fbbf24' }}>
+        <div className="rounded-lg p-4 text-sm" style={{ backgroundColor: '#1a1206', border: '1px solid #4a3010', color: '#fbbf24' }}>
           <p>{error}</p>
-          {!showManual && (
-            <button
-              onClick={() => setShowManual(true)}
-              className="text-xs font-semibold hover:underline"
-              style={{ color: '#a78bfa' }}
-            >
-              → Enter your bill manually instead
-            </button>
-          )}
         </div>
-      )}
-
-      {!showManual && status !== 'done' && !error && (
-        <p className="text-center text-xs" style={{ color: '#445878' }}>
-          Have a scanned or paper bill?{' '}
-          <button
-            onClick={() => setShowManual(true)}
-            className="hover:underline font-medium"
-            style={{ color: '#a78bfa' }}
-          >
-            Enter charges manually
-          </button>
-        </p>
-      )}
-
-      {showManual && (
-        <ManualBillEntry onBillParsed={bill => {
-          setStatus('done')
-          setError(null)
-          onBillParsed(bill)
-        }} />
       )}
 
       {/* Help section */}

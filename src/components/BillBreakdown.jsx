@@ -1,9 +1,8 @@
 import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import ChargeCard from './ChargeCard'
-import { submitCorrection, INSURERS } from '../constants/analytics'
 
-export default function BillBreakdown({ bill, onUpdateTotals }) {
+export default function BillBreakdown({ bill }) {
   const { lineItems, totals, hospitalName, patientName, dateOfService, flagSummary, unbundlingWarnings, documentType } = bill
   const navigate = useNavigate()
   const isEOB = documentType === 'eob'
@@ -38,9 +37,9 @@ export default function BillBreakdown({ bill, onUpdateTotals }) {
 
       {/* Stats */}
       <div className="card grid grid-cols-2 md:grid-cols-4 gap-4">
-        <EditableStat label="Total Billed"   value={totals?.billed}       confidence={totals?.billedConfidence}       field="billed"       onSave={onUpdateTotals} />
-        <EditableStat label="Insurance Paid" value={totals?.covered}      confidence={totals?.coveredConfidence}      field="covered"      onSave={onUpdateTotals} />
-        <EditableStat label="You Owe"        value={totals?.patientOwes}  confidence={totals?.patientOwesConfidence}  field="patientOwes"  onSave={onUpdateTotals} highlight />
+        <AmountStat label="Total Billed"   value={totals?.billed}      confidence={totals?.billedConfidence} />
+        <AmountStat label="Insurance Paid" value={totals?.covered}     confidence={totals?.coveredConfidence} />
+        <AmountStat label="You Owe"        value={totals?.patientOwes} confidence={totals?.patientOwesConfidence} highlight />
         <Stat label="Charges Flagged" value={`${totalFlagged} of ${lineItems.length}`} />
       </div>
 
@@ -137,182 +136,24 @@ export default function BillBreakdown({ bill, onUpdateTotals }) {
   )
 }
 
-/**
- * EditableStat — displays a dollar amount extracted from the bill.
- * Rendering varies by confidence level returned by amountExtractor:
- *   high   → $X + ✎ edit link
- *   medium → $X + ⚠ verify note
- *   low    → "We think: $X — correct?" Yes/No
- *   null   → manual entry input field (value not found)
- */
-function EditableStat({ label, value, confidence, field, onSave, highlight }) {
-  // 'enter' = no value, show input; 'show' = display value; 'correct' = correction form
-  const [mode, setMode] = useState(value == null ? 'enter' : 'show')
-  const [confirmed, setConfirmed] = useState(false)
-  const [input, setInput] = useState('')
-  const [insurer, setInsurer] = useState('')
-
-  // If parser re-ran and now has a value, exit 'enter' mode automatically
-  const effectiveMode = (mode === 'enter' && value != null) ? 'show' : mode
-
-  function saveEntered() {
-    const val = parseFloat(input.replace(/[$,\s]/g, ''))
-    if (isNaN(val) || val < 0) return
-    onSave?.({ [field]: val })
-    setMode('show')
-    setInput('')
-  }
-
-  function saveCorrection() {
-    const val = parseFloat(input.replace(/[$,\s]/g, ''))
-    if (isNaN(val) || val < 0) return
-    onSave?.({ [field]: val })
-    submitCorrection(label, val, insurer)
-    setMode('show')
-    setInput('')
-    setInsurer('')
-  }
-
-  const inputClass = 'flex-1 min-w-0 rounded px-2 py-1 text-sm font-mono bg-slate-800 border text-white focus:outline-none'
-
-  // ── No value found → manual entry ─────────────────────────────────────────
-  if (effectiveMode === 'enter') {
+function AmountStat({ label, value, confidence, highlight }) {
+  if (value == null) {
     return (
       <div>
         <p className="text-xs text-slate-500 uppercase tracking-wide">{label}</p>
-        <p className="text-xs mt-0.5 mb-1.5" style={{ color: '#f59e0b' }}>
-          Not found — enter below
-        </p>
-        <div className="flex gap-1">
-          <input
-            type="text"
-            value={input}
-            onChange={e => setInput(e.target.value)}
-            onKeyDown={e => { if (e.key === 'Enter') saveEntered() }}
-            placeholder="e.g. 1200.00"
-            className={`${inputClass} border-amber-400/60 focus:border-violet-400`}
-          />
-          <button onClick={saveEntered} className="text-xs px-2 py-1 rounded bg-violet-600 text-white font-semibold">✓</button>
-        </div>
-        <p className="text-xs mt-1" style={{ color: '#5c7090' }}>
-          Look for "{label}" or "Amount Due" on your document.
-        </p>
+        <p className="text-sm mt-1" style={{ color: '#5c7090' }}>—</p>
       </div>
     )
   }
-
-  // ── Correction form ────────────────────────────────────────────────────────
-  if (effectiveMode === 'correct') {
-    return (
-      <div>
-        <p className="text-xs text-slate-500 uppercase tracking-wide mb-1">{label}</p>
-        <p className="text-xs mb-1.5" style={{ color: '#9aabca' }}>What does your bill say?</p>
-        <div className="flex gap-1 mb-1.5">
-          <input
-            autoFocus
-            type="text"
-            value={input}
-            onChange={e => setInput(e.target.value)}
-            onKeyDown={e => {
-              if (e.key === 'Enter') saveCorrection()
-              if (e.key === 'Escape') setMode('show')
-            }}
-            placeholder="e.g. 13255.04"
-            className={`${inputClass} border-violet-400`}
-          />
-        </div>
-        <select
-          value={insurer}
-          onChange={e => setInsurer(e.target.value)}
-          className="w-full text-xs rounded px-2 py-1.5 mb-1.5 bg-slate-800 border border-slate-600 text-slate-300 focus:outline-none"
-        >
-          <option value="">Insurer (optional — helps us fix parsing)</option>
-          {INSURERS.map(i => <option key={i} value={i}>{i}</option>)}
-        </select>
-        <div className="flex gap-1">
-          <button onClick={saveCorrection} className="flex-1 text-xs py-1 rounded bg-violet-600 text-white font-semibold">Save</button>
-          <button onClick={() => setMode('show')} className="text-xs px-2 py-1 rounded bg-slate-700 text-slate-400">✕</button>
-        </div>
-      </div>
-    )
-  }
-
-  // ── Low confidence → "We think $X — correct?" ─────────────────────────────
-  if (confidence === 'low' && !confirmed) {
-    return (
-      <div>
-        <p className="text-xs text-slate-500 uppercase tracking-wide">{label}</p>
-        <p className={`text-xl font-bold mt-0.5 ${highlight ? 'text-violet-700' : 'text-slate-800'}`}>
-          ${value.toLocaleString()}
-        </p>
-        <p className="text-xs mt-0.5 mb-1.5" style={{ color: '#f59e0b' }}>We think this is right — confirm?</p>
-        <div className="flex gap-1">
-          <button
-            onClick={() => setConfirmed(true)}
-            className="flex-1 text-xs py-1 rounded bg-green-600 text-white font-semibold"
-          >
-            ✓ Yes
-          </button>
-          <button
-            onClick={() => { setMode('correct'); setInput(String(value)) }}
-            className="flex-1 text-xs py-1 rounded bg-slate-700 text-slate-300 font-semibold"
-          >
-            Fix it
-          </button>
-        </div>
-      </div>
-    )
-  }
-
-  // ── Medium confidence → amount + ⚠ verify note ────────────────────────────
-  if (confidence === 'medium' && !confirmed) {
-    return (
-      <div>
-        <p className="text-xs text-slate-500 uppercase tracking-wide">{label}</p>
-        <div className="flex items-end gap-1 mt-0.5">
-          <p className={`text-xl font-bold ${highlight ? 'text-violet-700' : 'text-slate-800'}`}>
-            ${value.toLocaleString()}
-          </p>
-          <button
-            onClick={() => { setMode('correct'); setInput(String(value)) }}
-            className="text-xs mb-0.5 text-slate-400 hover:text-slate-600"
-          >
-            ✎
-          </button>
-        </div>
-        <button
-          onClick={() => { setMode('correct'); setInput(String(value)) }}
-          className="text-xs mt-0.5 hover:underline flex items-center gap-1"
-          style={{ color: '#f59e0b' }}
-        >
-          ⚠ verify this
-        </button>
-      </div>
-    )
-  }
-
-  // ── High confidence (or confirmed) → clean display ────────────────────────
   return (
     <div>
       <p className="text-xs text-slate-500 uppercase tracking-wide">{label}</p>
-      <div className="flex items-end gap-1 mt-0.5">
-        <p className={`text-xl font-bold ${highlight ? 'text-violet-700' : 'text-slate-800'}`}>
-          ${value.toLocaleString()}
-        </p>
-        <button
-          onClick={() => { setMode('correct'); setInput(String(value)) }}
-          className="text-xs mb-0.5 text-slate-400 hover:text-slate-600"
-        >
-          ✎
-        </button>
-      </div>
-      <button
-        onClick={() => { setMode('correct'); setInput(String(value)) }}
-        className="text-xs mt-0.5 hover:underline"
-        style={{ color: '#f87171' }}
-      >
-        Amount looks wrong?
-      </button>
+      <p className={`text-xl font-bold mt-0.5 ${highlight ? 'text-violet-700' : 'text-slate-800'}`}>
+        ${value.toLocaleString()}
+      </p>
+      {confidence === 'low' && (
+        <p className="text-xs mt-0.5" style={{ color: '#f59e0b' }}>approximate</p>
+      )}
     </div>
   )
 }

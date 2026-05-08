@@ -30,12 +30,6 @@ export default function Analyze() {
     setShowReplace(false)
   }
 
-  function updateTotals(patch) {
-    const updated = { ...bill, totals: { ...(bill.totals ?? {}), ...patch } }
-    setBill(updated)
-    localStorage.setItem('medzilla_bill', JSON.stringify(updated))
-  }
-
   const flaggedCount = bill?.lineItems?.filter(i => i.flag !== 'normal').length ?? 0
 
   if (!bill) {
@@ -162,7 +156,7 @@ export default function Analyze() {
               </div>
             </div>
 
-            {tab === 'Charges' && <BillBreakdown bill={bill} onUpdateTotals={updateTotals} />}
+            {tab === 'Charges' && <BillBreakdown bill={bill} />}
             {tab === 'Legal Review' && <LegalVerifier bill={bill} />}
             {tab === 'Chat' && <ChatInterface bill={bill} />}
             {tab === 'Insurance Terms' && <InsuranceExplainer />}
