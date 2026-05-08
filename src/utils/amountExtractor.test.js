@@ -189,22 +189,31 @@ Amount Payable: ₹5,500.00
 })
 
 // ── TEST 8: Aetna EOB — flat text (pdf.js single-line output) ────────────────
-describe('TEST 8 — Aetna EOB flat text (no line breaks)', () => {
-  // Simulates what pdf.js produces when it joins all text items with spaces.
-  // The 9 column values appear as a tight cluster after the column headers.
-  const text = 'Track your health care costs Your payment summary Amount billed Member rate Not payable by plan Applied to deductible Your copay Amount remaining Plan\'s share Your coinsurance Your share C+D+E+H=I Service type Emergency 13,255.04 9,522.97 3,703.57 0.00 0.00 0.00 5,193.52 329.97 1,538.55 Your next steps'
+describe('TEST 8 — Aetna EOB flat text (no line breaks, real 8-column format)', () => {
+  // Real Aetna EOB column order (from console debug output):
+  // Amount billed | Member rate | Not payable | Deductible | Copay | Amount remaining | Plan's share | Your share
+  // Zeros are 0.00 so excluded from allAmounts; non-zero cluster = 6 values.
+  // billed=col[0]=13255.04, insurance=col[-2]=8718.45, owe=col[-1]=1538.55
+  const text = 'Track your health care costs This is not a bill. Amount billed Member rate Not payable by plan Applied to deductible Your copay Amount remaining Plan\'s share Your share C+D+E+H=I Service type Emergency 13,255.04 14,614.00 11,512.04 0.00 0.00 10,257.00 8,718.45 1,538.55 Your next steps'
 
-  it('extractFromFlatText detects the 9-column cluster', () => {
-    const r = extractFromFlatText(text)
+  it('extractFromFlatText detects the 8-column totals cluster', () => {
+    const r = extractFromFlatText(text, 'eob')
     expect(r?.billed?.value).toBe(13255.04)
-    expect(r?.insurance?.value).toBe(5193.52)
+    expect(r?.insurance?.value).toBe(8718.45)
     expect(r?.owe?.value).toBe(1538.55)
   })
 
-  it('extractAmounts returns correct values from flat text', () => {
+  it('extractAmounts returns correct values (owe MUST be 1538.55)', () => {
     const r = extractAmounts(text)
     expect(r.billed).toBe(13255.04)
-    expect(r.insurance).toBe(5193.52)
+    expect(r.owe).toBe(1538.55)
+  })
+
+  it('rejects individual line items under $1000 as billed candidates', () => {
+    // Add small line items before the totals row — they must not be chosen
+    const textWithLineItems = '99285 emergency 328.00 290.00 93.00 0.00 0.00 175.00 146.00 38.00 ' + text
+    const r = extractAmounts(textWithLineItems)
+    expect(r.billed).toBe(13255.04)
     expect(r.owe).toBe(1538.55)
   })
 })

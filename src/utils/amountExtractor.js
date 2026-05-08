@@ -330,36 +330,54 @@ function isFlatText(text) {
   return (text.replace(/\n/g, '').length / nonEmpty.length) > 400
 }
 
-export function extractFromFlatText(text) {
-  // Collect every dollar-like amount with its character position
+export function extractFromFlatText(text, docType = 'bill') {
+  // Collect every dollar-like amount with its position; skip zeros
   const allAmounts = []
   const amountRe = /(?:RS\.?|INR|₹|\$)?\s*([\d]{1,3}(?:,[\d]{3})*\.[\d]{2})/gi
   let m
   while ((m = amountRe.exec(text)) !== null) {
     const val = parseFloat(m[1].replace(/,/g, ''))
-    if (!isNaN(val)) allAmounts.push({ value: val, index: m.index })
+    if (!isNaN(val) && val > 0) allAmounts.push({ value: val, index: m.index })
   }
   if (allAmounts.length === 0) return null
 
   const t = text.toLowerCase()
 
-  // ── Strategy 1: find 7-9 consecutive amounts within 1000 chars ─────────────
-  // In Aetna flat EOB the 9 column values appear back-to-back after headers.
-  // Individual service rows are scattered; only the totals cluster this tightly.
-  for (let i = 0; i <= allAmounts.length - 7; i++) {
-    const win = allAmounts.slice(i, i + 9)
-    const span = win[win.length - 1].index - win[0].index
-    if (span > 1000) continue          // not tight enough — different rows
-    if (win[0].value <= 100) continue  // guard: skip rows like all-$0.04
-    const ins = win[win.length - 3]
-    const owe = win[win.length - 1]
-    // Sanity: billed > insurance and billed > owe
-    if (ins && owe && win[0].value > owe.value && win[0].value > ins.value) {
-      return {
-        billed:    { value: win[0].value, confidence: 'high', matchedLabel: 'flat:seq[0]' },
-        insurance: { value: ins.value,    confidence: 'high', matchedLabel: 'flat:seq[-3]' },
-        owe:       { value: owe.value,    confidence: 'high', matchedLabel: 'flat:seq[-1]' },
-      }
+  // RULE 1 — minimum thresholds to reject individual line-item amounts
+  const minBilled    = docType === 'eob' ? 1000 : 200
+  const minInsurance = docType === 'eob' ? 500  : 50
+
+  // ── Strategy 1: dense amount cluster = totals row (RULE 3) ─────────────────
+  // Build clusters: consecutive amounts where each pair is ≤ 500 chars apart.
+  // Service-line amounts scatter across the doc; totals values are contiguous.
+  // Return the FIRST valid cluster in text order — the totals row appears
+  // after service lines; individual line items are filtered by minBilled.
+  // (In Aetna, Amount billed=13255 appears before Member rate=14614 positionally,
+  //  so the first valid cluster correctly starts at 13255.)
+
+  for (let i = 0; i <= allAmounts.length - 5; i++) {
+    const cluster = [allAmounts[i]]
+    for (let j = i + 1; j < allAmounts.length; j++) {
+      if (allAmounts[j].index - allAmounts[j - 1].index > 500) break
+      cluster.push(allAmounts[j])
+      if (cluster.length === 9) break
+    }
+    if (cluster.length < 5) continue
+
+    const billed = cluster[0].value
+    const owe    = cluster[cluster.length - 1].value
+    const ins    = cluster[cluster.length - 2].value
+
+    // RULE 1 + RULE 4 validation
+    if (billed < minBilled) continue          // reject individual service line items
+    if (billed < 1000) continue               // must be a plausible total
+    if (owe >= billed) continue               // owe can't exceed billed
+    if (ins >= billed || ins <= 0) continue   // insurance must be < billed
+
+    return {
+      billed:    { value: billed, confidence: 'high', matchedLabel: 'flat:seq[0]' },
+      insurance: { value: ins,    confidence: 'high', matchedLabel: 'flat:seq[-2]' },
+      owe:       { value: owe,    confidence: 'high', matchedLabel: 'flat:seq[-1]' },
     }
   }
 
@@ -369,21 +387,65 @@ export function extractFromFlatText(text) {
   if (vtM) {
     const billedVal = parseFloat(vtM[1].replace(/,/g, ''))
     const seg = vtM[2]
-    const negM  = seg.match(/-\$?([\d,]+\.\d{2})/)
+    const negM   = seg.match(/-\$?([\d,]+\.\d{2})/)
     const posAll = [...seg.matchAll(/(?<![-\d])\$?([\d,]+\.\d{2})/g)]
       .map(a => parseFloat(a[1].replace(/,/g, '')))
       .filter(v => v > 0)
-    if (billedVal > 0) {
+    if (billedVal >= minBilled) {
       return {
-        billed:    { value: billedVal,                                       confidence: 'high', matchedLabel: 'flat:visit-totals' },
-        insurance: negM ? { value: parseFloat(negM[1].replace(/,/g, '')),   confidence: 'high', matchedLabel: 'flat:visit-totals-discount' } : null,
-        owe:       posAll.length ? { value: posAll[posAll.length - 1],      confidence: 'high', matchedLabel: 'flat:visit-totals-last' } : null,
+        billed:    { value: billedVal,                                                           confidence: 'high', matchedLabel: 'flat:visit-totals' },
+        insurance: negM ? { value: parseFloat(negM[1].replace(/,/g, '')),                       confidence: 'high', matchedLabel: 'flat:visit-totals-discount' } : null,
+        owe:       posAll.length ? { value: posAll[posAll.length - 1],                          confidence: 'high', matchedLabel: 'flat:visit-totals-last' } : null,
       }
     }
   }
 
-  // ── Strategy 3: wide-window label matching ──────────────────────────────────
-  // Use the LAST occurrence of each label (most likely to be the totals/summary row).
+  // ── Strategy 3: mathematical — RULE 2 ─────────────────────────────────────
+  // billed = largest significant amount.
+  // Find (insurance, owe) where both values exist in the document and
+  // billed − insurance ≈ owe (within 5%), with cross-validation.
+  const significant = allAmounts.filter(a => a.value >= minBilled)
+  if (significant.length > 0) {
+    const billedVal = significant.reduce((mx, a) => a.value > mx.value ? a : mx).value
+
+    // Candidates for owe: any amount < billed and plausible as a patient share
+    const oweCandidates = allAmounts
+      .filter(a => a.value > 0 && a.value !== billedVal && a.value < billedVal)
+      .sort((a, b) => b.value - a.value)
+
+    for (const oweCand of oweCandidates.slice(0, 15)) {
+      const impliedIns = billedVal - oweCand.value
+      if (impliedIns < minInsurance) continue
+      const foundIns = allAmounts.find(a =>
+        a.value !== billedVal &&
+        a.value !== oweCand.value &&
+        a.value >= minInsurance &&
+        Math.abs(a.value - impliedIns) / billedVal < 0.05
+      )
+      if (foundIns) {
+        return {
+          billed:    { value: billedVal,          confidence: 'medium', matchedLabel: 'flat:largest' },
+          insurance: { value: foundIns.value,     confidence: 'medium', matchedLabel: 'flat:cross-validated' },
+          owe:       { value: oweCand.value,      confidence: 'medium', matchedLabel: 'flat:derived' },
+        }
+      }
+    }
+
+    // Cross-validation failed — return billed + best owe guess (RULE 4: low confidence)
+    const oweGuess = allAmounts
+      .filter(a => a.value < billedVal * 0.5 && a.value > 0)
+      .sort((a, b) => a.value - b.value)[0]
+    if (oweGuess) {
+      return {
+        billed:    { value: billedVal,        confidence: 'medium', matchedLabel: 'flat:largest' },
+        insurance: null,
+        owe:       { value: oweGuess.value,   confidence: 'low',    matchedLabel: 'flat:owe-guess' },
+      }
+    }
+  }
+
+  // ── Strategy 4: wide-window label matching ─────────────────────────────────
+  // Last occurrence of each label = most likely to be the summary/totals row.
   function firstAmountAfterLast(label, minVal = 1) {
     const idx = t.lastIndexOf(label)
     if (idx === -1) return null
@@ -392,13 +454,11 @@ export function extractFromFlatText(text) {
 
   let billed = null, insurance = null, owe = null
 
-  // Total Billed — use largest amount after the label (the total, not a line item)
   const billedLabelIdx = t.indexOf('amount billed')
   if (billedLabelIdx !== -1) {
-    const after = allAmounts.filter(a => a.index > billedLabelIdx && a.value > 100)
+    const after = allAmounts.filter(a => a.index > billedLabelIdx && a.value >= minBilled)
     if (after.length > 0) {
-      const largest = after.reduce((mx, a) => a.value > mx.value ? a : mx)
-      billed = { value: largest.value, confidence: 'medium', matchedLabel: 'flat:amount-billed' }
+      billed = { value: after.reduce((mx, a) => a.value > mx.value ? a : mx).value, confidence: 'medium', matchedLabel: 'flat:amount-billed' }
     }
   }
 
@@ -410,16 +470,15 @@ export function extractFromFlatText(text) {
 
   const insLabels = ["plan's share", "plan paid", "insurance paid", "insurance payment", "tpa amount"]
   for (const label of insLabels) {
-    const a = firstAmountAfterLast(label)
+    const a = firstAmountAfterLast(label, minInsurance)
     if (a) { insurance = { value: a.value, confidence: 'medium', matchedLabel: `flat:${label}` }; break }
   }
 
-  // ── Strategy 4: infer insurance from billed − owe ──────────────────────────
   if (billed && owe && !insurance) {
     const implied = billed.value - owe.value
-    if (implied > 0) {
-      const candidate = allAmounts.find(a => Math.abs(a.value - implied) / billed.value < 0.05)
-      if (candidate) insurance = { value: candidate.value, confidence: 'low', matchedLabel: 'flat:implied' }
+    if (implied >= minInsurance) {
+      const cand = allAmounts.find(a => Math.abs(a.value - implied) / billed.value < 0.05)
+      if (cand) insurance = { value: cand.value, confidence: 'low', matchedLabel: 'flat:implied' }
     }
   }
 
@@ -464,7 +523,7 @@ export function extractAmounts(rawText) {
   // ── Pass 0: flat-text extraction (pdf.js single-line output) ───────────
   const flat = isFlatText(rawText) || isFlatText(normalized)
   if (flat) {
-    const ft = extractFromFlatText(rawText) ?? extractFromFlatText(normalized)
+    const ft = extractFromFlatText(rawText, docType) ?? extractFromFlatText(normalized, docType)
     if (ft) {
       billedResult    = ft.billed    ?? null
       insuranceResult = ft.insurance ?? null
@@ -477,14 +536,17 @@ export function extractAmounts(rawText) {
 
   // ── Pass A: multi-column totals row (EOB primary) ───────────────────────
   if (docType === 'eob') {
-    const fb = totalsRowFallback(rawText, docType) ?? totalsRowFallback(normalized, docType)
-    if (fb) {
-      billedResult    = fb.billed
-      insuranceResult = fb.insurance
-      oweResult       = fb.owe
-      console.log('Multi-col row hit:', { billed: fb.billed?.value, insurance: fb.insurance?.value, owe: fb.owe?.value })
-    } else {
-      console.log('Multi-col row: no match (no line with 7+ amounts where first > 100)')
+    // Only run multi-col detection for values not already found by Pass 0
+    if (!billedResult || !insuranceResult || !oweResult) {
+      const fb = totalsRowFallback(rawText, docType) ?? totalsRowFallback(normalized, docType)
+      if (fb) {
+        if (!billedResult)    billedResult    = fb.billed
+        if (!insuranceResult) insuranceResult = fb.insurance
+        if (!oweResult)       oweResult       = fb.owe
+        console.log('Multi-col row hit:', { billed: fb.billed?.value, insurance: fb.insurance?.value, owe: fb.owe?.value })
+      } else {
+        console.log('Multi-col row: no match')
+      }
     }
   }
 
