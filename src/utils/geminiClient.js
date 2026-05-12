@@ -1,46 +1,24 @@
-const MODEL = 'gemini-2.0-flash'
-const BASE = 'https://generativelanguage.googleapis.com/v1beta/models'
-
-export function getApiKey() {
-  try { return localStorage.getItem('medzilla_gemini_key') || '' } catch { return '' }
-}
-
-export function setApiKey(key) {
-  localStorage.setItem('medzilla_gemini_key', key.trim())
-}
-
-export async function callGemini(prompt, { json = false } = {}) {
-  const key = getApiKey()
-  if (!key) throw new Error('No Gemini API key set. Add it in your Profile.')
-
-  const res = await fetch(`${BASE}/${MODEL}:generateContent?key=${key}`, {
+async function callGemini(prompt, { json = false, systemPrompt } = {}) {
+  const res = await fetch('/api/gemini', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({
-      contents: [{ parts: [{ text: prompt }] }],
-      generationConfig: {
-        temperature: 0.2,
-        maxOutputTokens: json ? 1024 : 600,
-      },
-    }),
+    body: JSON.stringify({ prompt, systemPrompt }),
   })
 
   if (!res.ok) {
     const err = await res.json().catch(() => ({}))
-    const msg = err?.error?.message ?? `HTTP ${res.status}`
-    if (res.status === 400) throw new Error('Invalid API key or request. Check your Gemini API key in Profile.')
+    const msg = err?.error ?? `HTTP ${res.status}`
     if (res.status === 429) throw new Error('Rate limit hit. Wait a moment and try again.')
-    throw new Error(`Gemini API error: ${msg}`)
+    throw new Error(`AI error: ${msg}`)
   }
 
-  const data = await res.json()
-  const text = data?.candidates?.[0]?.content?.parts?.[0]?.text ?? ''
+  const { text } = await res.json()
 
   if (json) {
     const match = text.match(/```json\s*([\s\S]*?)```/) || text.match(/\{[\s\S]*\}/)
     const raw = match ? (match[1] ?? match[0]) : text
     try { return JSON.parse(raw.trim()) } catch {
-      throw new Error('Gemini returned invalid JSON. Try again.')
+      throw new Error('AI returned invalid JSON. Try again.')
     }
   }
 

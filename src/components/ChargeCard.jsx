@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import FlagBadge from './FlagBadge'
-import { analyzeChargeWithAI, getApiKey } from '../utils/geminiClient'
+import { analyzeChargeWithAI } from '../utils/geminiClient'
 
 const CHARGE_SOURCES = {
   '99285': 'CMS E&M Documentation Guidelines — Level 5 requires high-complexity medical decision-making',
@@ -27,7 +27,7 @@ export default function ChargeCard({ item, isEOB }) {
   async function toggleExpanded() {
     const next = !expanded
     setExpanded(next)
-    if (next && !aiAnalysis && !aiLoading && getApiKey()) {
+    if (next && !aiAnalysis && !aiLoading) {
       setAiLoading(true)
       setAiError(null)
       try {

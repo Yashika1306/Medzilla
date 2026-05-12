@@ -1,7 +1,7 @@
 import { useState, useRef, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { matchChat } from '../utils/chatMatcher'
-import { chatWithBill, getApiKey } from '../utils/geminiClient'
+import { chatWithBill } from '../utils/geminiClient'
 
 const SUGGESTED = [
   'Why were multiple blood tests taken?',
@@ -36,11 +36,11 @@ export default function ChatInterface({ bill }) {
 
     try {
       let answer
-      if (getApiKey()) {
+      try {
         answer = await chatWithBill(q, bill, history)
-      } else {
+      } catch {
         answer = matchChat(q, bill)
-          ?? 'I can help with specific charges, dispute options, or negotiation. Add your Gemini API key in Profile for full AI answers.'
+          ?? 'I can help with specific charges, dispute options, or negotiation. Try: "Can I dispute any charges?" or "What is charity care?"'
       }
       setMessages(prev => [...prev, { role: 'assistant', text: answer }])
     } catch (err) {

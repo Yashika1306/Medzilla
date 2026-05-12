@@ -1,5 +1,4 @@
 import { useState, useEffect } from 'react'
-import { getApiKey, setApiKey } from '../utils/geminiClient'
 
 const EMPTY = {
   fullName: '',
@@ -22,16 +21,7 @@ export function loadProfile() {
 export default function UserProfileForm({ onSave, compact }) {
   const [form, setForm] = useState(() => loadProfile() ?? EMPTY)
   const [saved, setSaved] = useState(false)
-  const [apiKey, setApiKeyState] = useState(() => getApiKey())
-  const [apiKeySaved, setApiKeySaved] = useState(false)
-
-  function saveApiKey() {
-    setApiKey(apiKey.trim())
-    setApiKeySaved(true)
-    setTimeout(() => setApiKeySaved(false), 2000)
-  }
-
-  useEffect(() => {
+useEffect(() => {
     const existing = loadProfile()
     if (existing) setForm(existing)
   }, [])
@@ -126,30 +116,6 @@ export default function UserProfileForm({ onSave, compact }) {
         {saved && <span className="text-xs text-green-600 font-medium">Saved — all letters updated</span>}
       </div>
 
-      {/* Gemini API Key */}
-      <div className="mt-6 pt-5 border-t border-slate-200">
-        <p className="font-semibold text-slate-800 text-sm">AI Features (Gemini)</p>
-        <p className="text-xs text-slate-500 mt-0.5 mb-3">
-          Enables AI-powered chat, smarter charge explanations, and better letters.
-          Your key is stored only in your browser — never transmitted to our servers.
-        </p>
-        <div className="flex gap-2">
-          <input
-            className={inputClass}
-            type="password"
-            value={apiKey}
-            onChange={e => { setApiKeyState(e.target.value); setApiKeySaved(false) }}
-            placeholder="Paste your Google AI Studio key here"
-          />
-          <button onClick={saveApiKey} className="btn-primary text-sm px-4 whitespace-nowrap">Save key</button>
-        </div>
-        {apiKeySaved && <p className="text-xs text-green-600 mt-1 font-medium">Key saved — AI features enabled</p>}
-        {!getApiKey() && (
-          <p className="text-xs text-slate-400 mt-1">
-            Get a free key at aistudio.google.com → Get API key
-          </p>
-        )}
-      </div>
     </div>
   )
 }
