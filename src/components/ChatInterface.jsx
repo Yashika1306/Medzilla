@@ -1,6 +1,7 @@
 import { useState, useRef, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { matchChat } from '../utils/chatMatcher'
+import { chatWithBill, getApiKey } from '../utils/geminiClient'
 
 const SUGGESTED = [
   'Why were multiple blood tests taken?',
@@ -24,20 +25,29 @@ export default function ChatInterface({ bill }) {
     bottomRef.current?.scrollIntoView({ behavior: 'smooth' })
   }, [messages])
 
-  function send(q) {
+  async function send(q) {
     q = (q ?? input).trim()
     if (!q || loading) return
 
+    const history = messages
     setMessages(prev => [...prev, { role: 'user', text: q }])
     setInput('')
     setLoading(true)
 
-    setTimeout(() => {
-      const answer = matchChat(q, bill)
-        ?? 'I can help with specific charges, dispute options, or negotiation. Try: "Can I dispute any charges?", "What is charity care?", or click a suggested question above.'
+    try {
+      let answer
+      if (getApiKey()) {
+        answer = await chatWithBill(q, bill, history)
+      } else {
+        answer = matchChat(q, bill)
+          ?? 'I can help with specific charges, dispute options, or negotiation. Add your Gemini API key in Profile for full AI answers.'
+      }
       setMessages(prev => [...prev, { role: 'assistant', text: answer }])
+    } catch (err) {
+      setMessages(prev => [...prev, { role: 'error', text: err.message }])
+    } finally {
       setLoading(false)
-    }, 120)
+    }
   }
 
   if (!bill) {
